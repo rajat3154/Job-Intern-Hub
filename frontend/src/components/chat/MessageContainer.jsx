@@ -202,7 +202,7 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
                               <div className="flex items-center">
                                     {isTyping ? (
                                           <div className="flex items-center text-xs text-green-500">
-                                                <p className="mr-1">{selectedUser.fullName?.split(" ")[0]} is typing</p>
+                                                <p className="mr-1">{selectedUser.fullName} is typing</p>
                                                 <div className="dot-animation">
                                                       <span className="dot">.</span>
                                                       <span className="dot">.</span>
@@ -291,25 +291,7 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
                               </div>
                         )}
 
-                        {isTyping && (
-                              <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="flex justify-start"
-                              >
-                                    <div className="max-w-xs md:max-w-md rounded-lg rounded-tl-none px-4 py-2 text-gray-300">
-                                          <div className="flex items-center">
-                                                <p className="mr-1">{selectedUser.fullName?.split(" ")[0]} is typing</p>
-                                                <div className="dot-animation">
-                                                      <span className="dot">.</span>
-                                                      <span className="dot">.</span>
-                                                      <span className="dot">.</span>
-                                                </div>
-                                          </div>
-                                    </div>
-                              </motion.div>
-                        )}
-
+                       
                         <div ref={messagesEndRef} />
                   </div>
 
