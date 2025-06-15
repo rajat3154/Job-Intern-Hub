@@ -383,13 +383,11 @@ const Profile = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Profile Header */}
-        <div className="bg-gray-900 rounded-xl shadow-lg p-6 mb-8 border border-gray-800">
+        <div className="bg-gray-950 rounded-xl shadow-lg p-6 mb-8 border border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
             {/* Left side: Avatar + Text Info */}
             <div className="flex items-center gap-4">
-              <Avatar
-                className="h-20 w-20 md:h-24 md:w-24 border-2 border-blue-500"
-              >
+              <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-blue-500">
                 <AvatarImage
                   src={profileUser?.profile?.profilePhoto}
                   className="object-cover"
@@ -702,7 +700,7 @@ const Profile = () => {
 
         {/* Applied Jobs and Internships - Only for student's own profile */}
         {isOwnProfile() && isStudent && (
-          <div className="bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-800">
+          <div className="bg-gray-950 rounded-xl shadow-lg p-6 border border-gray-800">
             <h2 className="text-xl font-bold text-blue-400 mb-6">
               Applications
             </h2>
@@ -877,18 +875,20 @@ const Profile = () => {
         {/* Only show Saved Items section for own profile */}
         {isOwnProfile() && (
           <div className="container mx-auto px-4 py-8">
-            <h2 className="text-2xl font-bold mb-6 text-blue-400">Saved Items</h2>
+            <h2 className="text-2xl font-bold mb-6 text-blue-400">
+              Saved Items
+            </h2>
             <Tabs defaultValue="jobs" className="w-full">
-              <TabsList className="inline-flex h-12 items-center justify-center rounded-lg bg-gray-800 p-1 mb-8 w-full">
-                <TabsTrigger 
-                  value="jobs" 
+              <TabsList className="inline-flex h-12 items-center justify-center rounded-lg bg-gray-950 p-1 mb-8 w-full">
+                <TabsTrigger
+                  value="jobs"
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2.5 text-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-blue-500 data-[state=active]:text-white text-blue-400"
                 >
                   <Bookmark className="w-5 h-5 mr-2" />
                   Saved Jobs
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="internships" 
+                <TabsTrigger
+                  value="internships"
                   className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2.5 text-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-blue-500 data-[state=active]:text-white text-blue-400"
                 >
                   <Bookmark className="w-5 h-5 mr-2" />
@@ -910,14 +910,16 @@ const Profile = () => {
                       >
                         <div className="absolute top-3 right-4 flex gap-2">
                           <Button
-                            onClick={() => navigate(`/job/description/${job._id}`)}
+                            onClick={() =>
+                              navigate(`/job/description/${job._id}`)
+                            }
                             variant="outline"
                             className="px-3 py-1 bg-purple-500 border-purple-500 text-white text-sm font-bold rounded-md hover:bg-purple-600 cursor-pointer"
                           >
                             View Details
                           </Button>
                           <Button
-                            onClick={() => handleSaveClick(job._id, 'job')}
+                            onClick={() => handleSaveClick(job._id, "job")}
                             variant="outline"
                             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-md flex items-center gap-2"
                           >
@@ -935,7 +937,10 @@ const Profile = () => {
 
                           <div className="flex items-center gap-3 mb-6">
                             <img
-                              src={job.created_by?.profile?.profilePhoto || "https://via.placeholder.com/50"}
+                              src={
+                                job.created_by?.profile?.profilePhoto ||
+                                "https://via.placeholder.com/50"
+                              }
                               alt="Company Logo"
                               className="w-12 h-12 rounded-full object-cover"
                               onError={(e) => {
@@ -944,13 +949,19 @@ const Profile = () => {
                               }}
                             />
                             <div>
-                              <h1 className="font-semibold text-lg">{job.created_by?.companyname}</h1>
-                              <p className="text-sm text-gray-400">{job.location}</p>
+                              <h1 className="font-semibold text-lg">
+                                {job.created_by?.companyname}
+                              </h1>
+                              <p className="text-sm text-gray-400">
+                                {job.location}
+                              </p>
                             </div>
                           </div>
 
                           <div className="mb-4">
-                            <h1 className="font-bold text-xl mb-3">{job.title}</h1>
+                            <h1 className="font-bold text-xl mb-3">
+                              {job.title}
+                            </h1>
                             <p className="text-sm text-gray-300 line-clamp-3">
                               {job.description}
                             </p>
@@ -992,14 +1003,20 @@ const Profile = () => {
                       >
                         <div className="absolute top-3 right-4 flex gap-2">
                           <Button
-                            onClick={() => navigate(`/internship/description/${internship._id}`)}
+                            onClick={() =>
+                              navigate(
+                                `/internship/description/${internship._id}`
+                              )
+                            }
                             variant="outline"
                             className="px-3 py-1 bg-purple-500 border-purple-500 text-white text-sm font-bold rounded-md hover:bg-purple-600 cursor-pointer"
                           >
                             View Details
                           </Button>
                           <Button
-                            onClick={() => handleSaveClick(internship._id, 'internship')}
+                            onClick={() =>
+                              handleSaveClick(internship._id, "internship")
+                            }
                             variant="outline"
                             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-md flex items-center gap-2"
                           >
@@ -1017,18 +1034,27 @@ const Profile = () => {
 
                           <div className="flex items-center gap-3 mb-6">
                             <img
-                              src={internship.recruiter?.profile?.profilePhoto || "https://via.placeholder.com/50"}
+                              src={
+                                internship.recruiter?.profile?.profilePhoto ||
+                                "https://via.placeholder.com/50"
+                              }
                               alt="Company Logo"
                               className="w-12 h-12 rounded-full"
                             />
                             <div>
-                              <h1 className="font-semibold text-lg">{internship.recruiter?.companyname}</h1>
-                              <p className="text-sm text-gray-400">{internship.location}</p>
+                              <h1 className="font-semibold text-lg">
+                                {internship.recruiter?.companyname}
+                              </h1>
+                              <p className="text-sm text-gray-400">
+                                {internship.location}
+                              </p>
                             </div>
                           </div>
 
                           <div className="mb-4">
-                            <h1 className="font-bold text-xl mb-3">{internship.title}</h1>
+                            <h1 className="font-bold text-xl mb-3">
+                              {internship.title}
+                            </h1>
                             <p className="text-sm text-gray-300 line-clamp-3">
                               {internship.description}
                             </p>
