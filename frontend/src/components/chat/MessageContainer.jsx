@@ -276,8 +276,8 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
                                                                   })}
                                                             </p>
                                                             {isSender && (
-                                                                  <span className={`ml-1 text-xs ${message.read ? 'text-blue-400' : 'text-white'}`} title={message.read ? 'Read' : 'Delivered'}>
-                                                                        &#10003;&#10003;
+                                                                  <span className={`ml-1 text-xs ${message.read ? 'text-black' : 'text-white'}`} title={message.read ? 'Read' : 'Delivered'}>
+                                                                        ✓✓
                                                                   </span>
                                                             )}
                                                       </div>
