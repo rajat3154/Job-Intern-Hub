@@ -259,9 +259,6 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
                             {user.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        {isOnline && (
-                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-black"></div>
-                        )}
                         {hasUnread && (
                           <div className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
                             <span className="text-xs text-white">
@@ -275,9 +272,6 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
                           <h3 className="font-medium text-white truncate">
                             {user.fullName}
                           </h3>
-                          {isOnline && (
-                            <span className="text-xs text-green-500">Online</span>
-                          )}
                         </div>
                         {!hasUnread && latestMessage && (
                           <p className="text-xs text-gray-400 truncate">
@@ -303,7 +297,7 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
             {/* Recruiters Section */}
             {recruiters.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-blue-300 mb-2 px-2">
+                <h3 className="text-sm font-semibold text-purple-300 mb-2 px-2">
                   Recruiters
                 </h3>
                 {recruiters.map((user) => {
@@ -329,9 +323,6 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
                             {user.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        {isOnline && (
-                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-black"></div>
-                        )}
                         {hasUnread && (
                           <div className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
                             <span className="text-xs text-white">
@@ -345,9 +336,6 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
                           <h3 className="font-medium text-white truncate">
                             {user.fullName}
                           </h3>
-                          {isOnline && (
-                            <span className="text-xs text-green-500">Online</span>
-                          )}
                         </div>
                         {!hasUnread && latestMessage && (
                           <p className="text-xs text-gray-400 truncate">

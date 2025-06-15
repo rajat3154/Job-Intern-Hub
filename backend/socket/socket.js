@@ -77,6 +77,20 @@ export const initSocket = (server) => {
                   }
             });
 
+            socket.on("typing", ({ receiverId }) => {
+                const receiverSocket = userSockets.get(receiverId);
+                if (receiverSocket) {
+                    io.to(receiverSocket).emit("typing", socket.userId);
+                }
+            });
+
+            socket.on("stop_typing", ({ receiverId }) => {
+                const receiverSocket = userSockets.get(receiverId);
+                if (receiverSocket) {
+                    io.to(receiverSocket).emit("stop_typing", socket.userId);
+                }
+            });
+
             socket.on("mark_messages_read", async ({ senderId, receiverId }) => {
                   try {
                         // Update all unread messages from this sender to read

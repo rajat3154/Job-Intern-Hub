@@ -23,6 +23,8 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
       const [error, setError] = useState(null);
       const [conversations, setConversations] = useState({});
       const messagesEndRef = useRef(null);
+      const [isTyping, setIsTyping] = useState(false);
+      const typingTimeoutRef = useRef(null);
 
       const isUserOnline = (userId) => {
             return Array.isArray(onlineUsers) && onlineUsers.includes(userId);
@@ -73,7 +75,7 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
 
       useEffect(() => {
             if (socket.current && selectedUser) {
-                  const handler = (newMessage) => {
+                  const handleNewMessage = (newMessage) => {
                         if (
                               (newMessage.senderId === selectedUser._id && newMessage.receiverId === authUser._id) ||
                               (newMessage.senderId === authUser._id && newMessage.receiverId === selectedUser._id)
@@ -82,9 +84,27 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
                               scrollToBottom();
                         }
                   };
-                  socket.current.on("message:new", handler);
+                  const handleTyping = (senderId) => {
+                        if (senderId === selectedUser._id) {
+                              console.log(`[MessageContainer] Received typing from ${senderId}`);
+                              setIsTyping(true);
+                        }
+                  };
+                  const handleStopTyping = (senderId) => {
+                        if (senderId === selectedUser._id) {
+                              console.log(`[MessageContainer] Received stop_typing from ${senderId}`);
+                              setIsTyping(false);
+                        }
+                  };
+
+                  socket.current.on("message:new", handleNewMessage);
+                  socket.current.on("typing", handleTyping);
+                  socket.current.on("stop_typing", handleStopTyping);
+
                   return () => {
-                        socket.current.off("message:new", handler);
+                        socket.current.off("message:new", handleNewMessage);
+                        socket.current.off("typing", handleTyping);
+                        socket.current.off("stop_typing", handleStopTyping);
                   };
             }
       }, [selectedUser, authUser._id, dispatch, messages]);
@@ -92,6 +112,12 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
       const handleSendMessage = async (e) => {
             e.preventDefault();
             if (!newMessage.trim() || !selectedUser?._id) return;
+            // Clear typing status when sending message
+            if (typingTimeoutRef.current) {
+                  clearTimeout(typingTimeoutRef.current);
+                  socket.current?.emit("stop_typing", { receiverId: selectedUser._id });
+            }
+            setIsTyping(false);
 
             try {
                   const response = await axios.post(
@@ -119,6 +145,29 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
             } catch (error) {
                   console.error("Error sending message:", error);
                   toast.error("Failed to send message");
+            }
+      };
+
+      const handleTypingChange = (e) => {
+            setNewMessage(e.target.value);
+            if (e.target.value.length > 0) {
+                  // Emit typing event
+                  console.log(`[MessageContainer] Emitting typing to ${selectedUser._id}`);
+                  socket.current?.emit("typing", { receiverId: selectedUser._id });
+                  if (typingTimeoutRef.current) {
+                        clearTimeout(typingTimeoutRef.current);
+                  }
+                  typingTimeoutRef.current = setTimeout(() => {
+                        console.log(`[MessageContainer] Emitting stop_typing (timeout) to ${selectedUser._id}`);
+                        socket.current?.emit("stop_typing", { receiverId: selectedUser._id });
+                  }, 1000);
+            } else {
+                  // Emit stop_typing event if text becomes empty
+                  if (typingTimeoutRef.current) {
+                        clearTimeout(typingTimeoutRef.current);
+                  }
+                  console.log(`[MessageContainer] Emitting stop_typing (empty text) to ${selectedUser._id}`);
+                  socket.current?.emit("stop_typing", { receiverId: selectedUser._id });
             }
       };
 
@@ -151,14 +200,27 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
                         <div className="ml-3">
                               <h3 className="font-semibold text-white">{selectedUser.fullName}</h3>
                               <div className="flex items-center">
-                                    <div
-                                          className={`h-2 w-2 rounded-full mr-1 ${
-                                                isUserOnline(selectedUser._id) ? "bg-green-500" : "bg-gray-500"
-                                          }`}
-                                    ></div>
-                                    <p className="text-xs text-gray-400">
-                                          {isUserOnline(selectedUser._id) ? "Online" : "Offline"}
-                                    </p>
+                                    {isTyping ? (
+                                          <div className="flex items-center text-xs text-green-500">
+                                                <p className="mr-1">{selectedUser.fullName?.split(" ")[0]} is typing</p>
+                                                <div className="dot-animation">
+                                                      <span className="dot">.</span>
+                                                      <span className="dot">.</span>
+                                                      <span className="dot">.</span>
+                                                </div>
+                                          </div>
+                                    ) : (
+                                          <>
+                                                <div
+                                                      className={`h-2 w-2 rounded-full mr-1 ${
+                                                            isUserOnline(selectedUser._id) ? "bg-green-500" : "bg-gray-500"
+                                                      }`}
+                                                ></div>
+                                                <p className="text-xs text-gray-400">
+                                                      {isUserOnline(selectedUser._id) ? "Online" : "Offline"}
+                                                </p>
+                                          </>
+                                    )}
                               </div>
                         </div>
 
@@ -224,22 +286,42 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
                                     );
                               })
                         ) : (
-                              <div className="text-center text-gray-400">
-                                    No messages yet. Start the conversation!
+                              <div className="flex justify-center items-center h-full">
+                                    <p className="text-gray-400">Say hello!</p>
                               </div>
                         )}
+
+                        {isTyping && (
+                              <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex justify-start"
+                              >
+                                    <div className="max-w-xs md:max-w-md rounded-lg rounded-tl-none px-4 py-2 text-gray-300">
+                                          <div className="flex items-center">
+                                                <p className="mr-1">{selectedUser.fullName?.split(" ")[0]} is typing</p>
+                                                <div className="dot-animation">
+                                                      <span className="dot">.</span>
+                                                      <span className="dot">.</span>
+                                                      <span className="dot">.</span>
+                                                </div>
+                                          </div>
+                                    </div>
+                              </motion.div>
+                        )}
+
                         <div ref={messagesEndRef} />
                   </div>
 
                   {/* Message input */}
                   <div className="p-4 border-t border-gray-800">
                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                              <input
+                              <Input
                                     type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
                                     placeholder="Type a message..."
-                                    className="flex-1 bg-gray-800 border-gray-700 text-white rounded-md px-4 py-2"
+                                    value={newMessage}
+                                    onChange={handleTypingChange}
+                                    className="flex-1 bg-gray-800 border-gray-700 text-white focus:ring-blue-500/50"
                               />
                               <button
                                     type="submit"
@@ -259,3 +341,5 @@ const MessageContainer = ({ selectedUser, unreadCounts, setUnreadCounts, socket 
 };
 
 export default MessageContainer;
+
+
