@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import LatestJobCards from "./LatestJobCards";
 import LatestInternshipCards from "./LatestInternshipCards";
 import { formatDistanceToNow } from 'date-fns';
+import FollowButton from "./FollowButton";
 
 const Profile = () => {
   const [open, setOpen] = useState(false);
@@ -272,6 +273,11 @@ const Profile = () => {
   }, [followersOpen, followingOpen]);
 
   const handleMessageClick = () => {
+    if (!currentUser) {
+      toast.error("Please login to message");
+      return;
+    }
+
     const selectedUser = {
       _id: profileUser._id,
       fullName: profileUser.fullname || profileUser.companyname,
@@ -284,6 +290,7 @@ const Profile = () => {
           : profileUser.companyname || "Recruiter",
       isOnline: false,
     };
+
     localStorage.setItem("selectedUser", JSON.stringify(selectedUser));
     navigate("/messages");
   };
@@ -378,8 +385,11 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="bg-gray-900 rounded-xl shadow-lg p-6 mb-8 border border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
+            {/* Left side: Avatar + Text Info */}
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-blue-500">
+              <Avatar
+                className="h-20 w-20 md:h-24 md:w-24 border-2 border-blue-500"
+              >
                 <AvatarImage
                   src={profileUser?.profile?.profilePhoto}
                   className="object-cover"
@@ -391,20 +401,53 @@ const Profile = () => {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-white">
-                  {profileUser?.fullname || profileUser?.companyname}
+                <h1 className="text-2xl font-bold text-white">
+                  {profileUser.role === "student"
+                    ? profileUser.fullname
+                    : profileUser.companyname}
                 </h1>
-                <p className="text-gray-300">
+                <p className="text-gray-600 mt-1">
+                  {profileUser.role === "student"
+                    ? profileUser.branch
+                    : profileUser.company}
+                </p>
+                <p className="text-gray-300 mt-2">
                   {profileUser?.profile?.headline ||
                     (isStudent ? "Student" : "Recruiter")}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Last seen {getLastSeenText(profileUser?.lastSeen)}
                 </p>
               </div>
             </div>
 
-            {/* ... existing buttons ... */}
+            {/* Right side: Buttons (only if not own profile) */}
+            {!isOwnProfile() && (
+              <div className="flex gap-3">
+                <FollowButton
+                  userId={profileUser._id}
+                  userType={profileUser.role}
+                  className="w-32"
+                  size="default"
+                />
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="w-32 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300"
+                  onClick={handleMessageClick}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Message
+                </Button>
+              </div>
+            )}
+            {/* Edit Profile Button for own profile */}
+            {isOwnProfile() && (
+              <Button
+                onClick={() => setOpen(true)}
+                className="w-32 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Pen className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            )}
           </div>
 
           {/* Bio */}

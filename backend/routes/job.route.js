@@ -9,7 +9,32 @@ router.route("/post").post(isAuthenticated, postJob);
 router.route("/get").get(isAuthenticated, getAllJobs);
 router.route("/get/:id").get(isAuthenticated, getJobById);
 router.route("/recruiter").get(isAuthenticated, getRecruiterJobs);
-router.route("/latest").get( getLatestJobs); 
+router.route("/recruiter/:id").get(isAuthenticated, async (req, res) => {
+    try {
+        const jobs = await Job.find({ created_by: req.params.id })
+            .populate({
+                path: 'created_by',
+                select: 'companyname profile',
+                populate: {
+                    path: 'profile',
+                    select: 'profilePhoto bio'
+                }
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            jobs
+        });
+    } catch (error) {
+        console.error("Error fetching recruiter jobs:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch recruiter jobs"
+        });
+    }
+});
+router.route("/latest").get(getLatestJobs); 
 router.route("/is-saved/:id").get(isAuthenticated, isJobSaved);
 router.route("/save-job/:id").post(isAuthenticated, saveJob);
 router.route("/delete/:id").delete(isAuthenticated, deleteJobById);

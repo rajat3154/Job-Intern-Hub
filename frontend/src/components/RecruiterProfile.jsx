@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Mail, Briefcase, Link as LinkIcon, Pen, FileText, MapPin, Building2, Calendar, Users, Globe, MessageSquare } from "lucide-react";
+import { Mail, Briefcase, Link as LinkIcon, Pen, FileText, MapPin, Building2, Calendar, Users, Globe, MessageSquare, Bookmark, ChevronDown, UserPlus } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
@@ -12,6 +12,18 @@ import Navbar from "./shared/Navbar";
 import { Card, CardContent } from "./ui/card";
 import PostJob from "./recruiter/PostJob";
 import PostInternship from "./recruiter/PostInternship";
+import { ScrollArea } from "./ui/scroll-area";
+import { Separator } from "./ui/separator";
+import { motion } from "framer-motion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import FollowButton from "./FollowButton";
 
 const RecruiterProfile = () => {
   const [profileData, setProfileData] = useState(null);
@@ -20,27 +32,37 @@ const RecruiterProfile = () => {
   const [loading, setLoading] = useState(true);
   const [showPostJob, setShowPostJob] = useState(false);
   const [showPostInternship, setShowPostInternship] = useState(false);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(true);
+  const [followingLoading, setFollowingLoading] = useState(true);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const { user: currentUser } = useSelector((store) => store.auth);
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isOwnProfile = !id || id === currentUser?._id;
 
   useEffect(() => {
     const fetchAllData = async () => {
       try {
         setLoading(true);
         const profileRes = await axios.get(
-          `http://localhost:8000/api/v1/recruiter/profile/${currentUser._id}`,
+          `http://localhost:8000/api/v1/recruiter/profile/${isOwnProfile ? currentUser._id : id}`,
           { withCredentials: true }
         );
         setProfileData(profileRes.data.data);
 
         const jobsRes = await axios.get(
-          "http://localhost:8000/api/v1/job/recruiter",
+          `http://localhost:8000/api/v1/job/recruiter/${isOwnProfile ? currentUser._id : id}`,
           { withCredentials: true }
         );
         setPostedJobs(jobsRes.data.jobs || []);
 
         const internshipsRes = await axios.get(
-          "http://localhost:8000/api/v1/internship/recruiter",
+          `http://localhost:8000/api/v1/internship/recruiter/${isOwnProfile ? currentUser._id : id}`,
           { withCredentials: true }
         );
         setInternships(internshipsRes.data.internships || []);
@@ -52,7 +74,67 @@ const RecruiterProfile = () => {
       }
     };
     fetchAllData();
-  }, [currentUser._id]);
+  }, [currentUser?._id, id, isOwnProfile]);
+
+  useEffect(() => {
+    const fetchFollowData = async () => {
+      if (!profileData?._id) return;
+
+      try {
+        setFollowersLoading(true);
+        setFollowingLoading(true);
+
+        const [followersRes, followingRes] = await Promise.all([
+          axios.get(
+            `http://localhost:8000/api/v1/follow/followers/${profileData._id}/recruiter`,
+            {
+              headers: { "Content-Type": "application/json" },
+              withCredentials: true,
+            }
+          ),
+          axios.get(
+            `http://localhost:8000/api/v1/follow/following/${profileData._id}/recruiter`,
+            {
+              headers: { "Content-Type": "application/json" },
+              withCredentials: true,
+            }
+          ),
+        ]);
+
+        setFollowers(followersRes.data.data);
+        setFollowing(followingRes.data.data);
+      } catch (error) {
+        console.error("Error fetching follow data:", error);
+        toast.error("Failed to load connections");
+      } finally {
+        setFollowersLoading(false);
+        setFollowingLoading(false);
+      }
+    };
+
+    fetchFollowData();
+  }, [profileData]);
+
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!currentUser?._id || !profileData?._id || isOwnProfile) return;
+
+      try {
+        const response = await axios.get(
+          `http://localhost:8000/api/v1/follow/check/${currentUser._id}/${profileData._id}`,
+          {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+          }
+        );
+        setIsFollowing(response.data.isFollowing);
+      } catch (error) {
+        console.error("Error checking follow status:", error);
+      }
+    };
+
+    checkFollowStatus();
+  }, [currentUser?._id, profileData?._id, isOwnProfile]);
 
   const handleJobPosted = async () => {
     try {
@@ -106,6 +188,98 @@ const RecruiterProfile = () => {
     }
   };
 
+  const handleSaveJob = async (jobId) => {
+    try {
+      await axios.post(
+        `http://localhost:8000/api/v1/job/save/${jobId}`,
+        {},
+        { withCredentials: true }
+      );
+      toast.success("Job saved successfully");
+    } catch (error) {
+      toast.error("Failed to save job");
+    }
+  };
+
+  const handleSaveInternship = async (internshipId) => {
+    try {
+      await axios.post(
+        `http://localhost:8000/api/v1/internship/save/${internshipId}`,
+        {},
+        { withCredentials: true }
+      );
+      toast.success("Internship saved successfully");
+    } catch (error) {
+      toast.error("Failed to save internship");
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!currentUser?._id || !profileData?._id) {
+      toast.error("Please login to follow");
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+      if (isFollowing) {
+        await axios.delete(
+          `http://localhost:8000/api/v1/follow/${currentUser._id}/${profileData._id}`,
+          {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+          }
+        );
+        setIsFollowing(false);
+        toast.success("Unfollowed successfully");
+      } else {
+        await axios.post(
+          `http://localhost:8000/api/v1/follow/${currentUser._id}/${profileData._id}`,
+          {},
+          {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+          }
+        );
+        setIsFollowing(true);
+        toast.success("Followed successfully");
+      }
+    } catch (error) {
+      console.error("Error following/unfollowing:", error);
+      toast.error("Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleMessageClick = () => {
+    if (!currentUser?._id || !profileData?._id) {
+      toast.error("Please login to message");
+      return;
+    }
+    const selectedUser = {
+      _id: profileData._id,
+      fullName: profileData.companyname,
+      email: profileData.email,
+      role: "recruiter",
+      profilePhoto: profileData.profile?.profilePhoto,
+      identifier: profileData.companyname || "Recruiter",
+      isOnline: false,
+    };
+    localStorage.setItem("selectedUser", JSON.stringify(selectedUser));
+    navigate("/messages");
+  };
+
+  const toggleFollowers = () => {
+    setShowFollowers(!showFollowers);
+    if (showFollowing) setShowFollowing(false);
+  };
+
+  const toggleFollowing = () => {
+    setShowFollowing(!showFollowing);
+    if (showFollowers) setShowFollowers(false);
+  };
+
   const renderJobCard = (job) => (
     <div
       key={job._id}
@@ -116,20 +290,37 @@ const RecruiterProfile = () => {
         <Button
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/job/details/${job._id}`);
+            navigate(isOwnProfile ? `/job/details/${job._id}` : `/job/description/${job._id}`);
           }}
           size="sm"
           className="bg-purple-600 hover:bg-purple-700 text-white"
         >
           View
         </Button>
-        <Button
-          onClick={(e) => handleDeleteJob(e, job._id)}
-          size="sm"
-          className="bg-red-600 hover:bg-red-700 text-white"
-        >
-          Delete
-        </Button>
+        {isOwnProfile ? (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteJob(job._id);
+            }}
+            size="sm"
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Delete
+          </Button>
+        ) : (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSaveJob(job._id);
+            }}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Bookmark className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+        )}
       </div>
 
       <div className="mt-12">
@@ -181,25 +372,43 @@ const RecruiterProfile = () => {
     <div
       key={internship._id}
       className="relative p-6 rounded-xl bg-gray-900 text-white border border-gray-800 hover:border-blue-500 cursor-pointer transition-all duration-300 w-full"
-      onClick={() => navigate(`/internship/details/${internship._id}`)}
+      onClick={() => navigate(isOwnProfile ? `/internship/details/${internship._id}` : `/internship/description/${internship._id}`)}
     >
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex gap-2">
         <Button
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/internship/details/${internship._id}`);
+            navigate(isOwnProfile ? `/internship/details/${internship._id}` : `/internship/description/${internship._id}`);
           }}
           size="sm"
           className="bg-purple-600 hover:bg-purple-700 text-white"
         >
           View Details
         </Button>
-        <Button
-          onClick={(e) => handleDeleteClick(e, internship._id)}
-          className="bg-red-600 text-red-500 hover:text-red-700 text-sm font-medium text-white m-2"
-        >
-          Delete
-        </Button>
+        {isOwnProfile ? (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteInternship(internship._id);
+            }}
+            size="sm"
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Delete
+          </Button>
+        ) : (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSaveInternship(internship._id);
+            }}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Bookmark className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+        )}
       </div>
 
       <div className="mt-12">
@@ -246,6 +455,7 @@ const RecruiterProfile = () => {
       </div>
     </div>
   );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950">
@@ -294,9 +504,139 @@ const RecruiterProfile = () => {
               </div>
 
               <div className="flex-1 text-center md:text-left">
-                <div className="mb-4">
-                  <h1 className="text-2xl font-bold">{profileData?.companyname}</h1>
-                  <p className="text-gray-400">{profileData?.profile?.tagline || "Recruiter"}</p>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h1 className="text-2xl font-bold">{profileData?.companyname}</h1>
+                    <p className="text-gray-400">{profileData?.profile?.tagline || "Recruiter"}</p>
+                  </div>
+
+                  {/* Action Buttons for Non-Recruiters */}
+                  {!isOwnProfile && currentUser?.role !== "recruiter" && (
+                    <div className="flex gap-3">
+                      <FollowButton
+                        userId={profileData?._id}
+                        userType="recruiter"
+                        className="w-32"
+                        size="default"
+                      />
+                      <Button
+                        variant="outline"
+                        size="default"
+                        className="w-32 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300"
+                        onClick={handleMessageClick}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Message
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Followers/Following Dropdowns */}
+                <div className="flex gap-4 mb-6">
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      className="text-gray-400 hover:text-white flex items-center gap-2"
+                      onClick={toggleFollowers}
+                    >
+                      <Users className="h-4 w-4" />
+                      {followers.length} Followers
+                      <ChevronDown className={`h-4 w-4 transition-transform ${showFollowers ? 'rotate-180' : ''}`} />
+                    </Button>
+                    {showFollowers && (
+                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-900 rounded-lg shadow-lg border border-gray-800 z-10">
+                        <ScrollArea className="h-[300px]">
+                          {followersLoading ? (
+                            <div className="flex justify-center items-center h-40">
+                              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                            </div>
+                          ) : followers.length > 0 ? (
+                            <div className="p-2">
+                              {followers.map((follower) => (
+                                <div
+                                  key={follower._id}
+                                  className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
+                                  onClick={() => navigate(`/profile/${follower.role.toLowerCase()}/${follower._id}`)}
+                                >
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={follower.profile?.profilePhoto} />
+                                    <AvatarFallback className="bg-gray-700">
+                                      {follower.fullname?.charAt(0) || follower.companyname?.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <h3 className="text-sm font-medium">
+                                      {follower.fullname || follower.companyname}
+                                    </h3>
+                                    <p className="text-xs text-gray-400">
+                                      {follower.role === "student" ? "Student" : "Recruiter"}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-400">
+                              No followers yet
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      className="text-gray-400 hover:text-white flex items-center gap-2"
+                      onClick={toggleFollowing}
+                    >
+                      <Users className="h-4 w-4" />
+                      {following.length} Following
+                      <ChevronDown className={`h-4 w-4 transition-transform ${showFollowing ? 'rotate-180' : ''}`} />
+                    </Button>
+                    {showFollowing && (
+                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-900 rounded-lg shadow-lg border border-gray-800 z-10">
+                        <ScrollArea className="h-[300px]">
+                          {followingLoading ? (
+                            <div className="flex justify-center items-center h-40">
+                              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                            </div>
+                          ) : following.length > 0 ? (
+                            <div className="p-2">
+                              {following.map((followed) => (
+                                <div
+                                  key={followed._id}
+                                  className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
+                                  onClick={() => navigate(`/profile/${followed.role.toLowerCase()}/${followed._id}`)}
+                                >
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={followed.profile?.profilePhoto} />
+                                    <AvatarFallback className="bg-gray-700">
+                                      {followed.fullname?.charAt(0) || followed.companyname?.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <h3 className="text-sm font-medium">
+                                      {followed.fullname || followed.companyname}
+                                    </h3>
+                                    <p className="text-xs text-gray-400">
+                                      {followed.role === "student" ? "Student" : "Recruiter"}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-400">
+                              Not following anyone yet
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Company Information */}
@@ -367,29 +707,24 @@ const RecruiterProfile = () => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                  <Button
-                    onClick={() => navigate('/edit-profile')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Pen className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                  <Button
-                    onClick={() => setShowPostJob(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Briefcase className="w-4 h-4 mr-2" />
-                    Post Job
-                  </Button>
-                  <Button
-                    onClick={() => setShowPostInternship(true)}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Post Internship
-                  </Button>
-                </div>
+                {isOwnProfile && (
+                  <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                    <Button
+                      onClick={() => setShowPostJob(true)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Briefcase className="w-4 h-4 mr-2" />
+                      Post Job
+                    </Button>
+                    <Button
+                      onClick={() => setShowPostInternship(true)}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Post Internship
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -430,14 +765,18 @@ const RecruiterProfile = () => {
                         <Briefcase className="h-12 w-12 mx-auto text-gray-600 mb-4" />
                         <h3 className="text-xl font-semibold mb-2">No Jobs Posted Yet</h3>
                         <p className="text-gray-400 mb-4">
-                          Start by posting your first job to find the right candidates.
+                          {isOwnProfile 
+                            ? "Start by posting your first job to find the right candidates."
+                            : "This company hasn't posted any jobs yet."}
                         </p>
-                        <Button
-                          onClick={() => setShowPostJob(true)}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          Post a Job
-                        </Button>
+                        {isOwnProfile && (
+                          <Button
+                            onClick={() => setShowPostJob(true)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Post a Job
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -458,14 +797,18 @@ const RecruiterProfile = () => {
                         <FileText className="h-12 w-12 mx-auto text-gray-600 mb-4" />
                         <h3 className="text-xl font-semibold mb-2">No Internships Posted Yet</h3>
                         <p className="text-gray-400 mb-4">
-                          Share internship opportunities and connect with early talent.
+                          {isOwnProfile 
+                            ? "Share internship opportunities and connect with early talent."
+                            : "This company hasn't posted any internships yet."}
                         </p>
-                        <Button
-                          onClick={() => setShowPostInternship(true)}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          Post Internship
-                        </Button>
+                        {isOwnProfile && (
+                          <Button
+                            onClick={() => setShowPostInternship(true)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Post Internship
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   </div>

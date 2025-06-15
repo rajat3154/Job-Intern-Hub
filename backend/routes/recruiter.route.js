@@ -20,4 +20,25 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Get recruiter profile by ID
+router.get("/profile/:id", async (req, res) => {
+    try {
+        const recruiter = await Recruiter.findById(req.params.id)
+            .select("-password")
+            .populate("profile");
+
+        if (!recruiter) {
+            return res.status(404).json(
+                new ApiResponse(404, null, "Recruiter not found")
+            );
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200, recruiter, "Recruiter profile fetched successfully")
+        );
+    } catch (error) {
+        throw new ApiError(500, error.message || "Error fetching recruiter profile");
+    }
+});
+
 export default router; 

@@ -158,7 +158,7 @@ const Discover = () => {
                   <div className="flex items-center gap-4 mb-4">
                     <Avatar 
                       className="h-16 w-16 border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-colors"
-                      onClick={() => navigate(`/profile/${user.userType}/${user._id}`)}
+                      onClick={() => navigate(user.userType === "recruiter" ? `/recruiter/profile/${user._id}` : `/profile/${user.userType}/${user._id}`)}
                     >
                       <AvatarImage src={user.profile?.profilePhoto} />
                       <AvatarFallback className="bg-gray-800 text-blue-400 font-medium">
@@ -168,7 +168,7 @@ const Discover = () => {
                     <div>
                       <h3 
                         className="font-semibold text-white truncate max-w-[150px] cursor-pointer hover:text-blue-400 transition-colors"
-                        onClick={() => navigate(`/profile/${user.userType}/${user._id}`)}
+                        onClick={() => navigate(user.userType === "recruiter" ? `/recruiter/profile/${user._id}` : `/profile/${user.userType}/${user._id}`)}
                       >
                         {user.displayName}
                       </h3>
