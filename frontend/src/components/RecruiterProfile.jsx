@@ -545,7 +545,7 @@ const RecruiterProfile = () => {
                       <ChevronDown className={`h-4 w-4 transition-transform ${showFollowers ? 'rotate-180' : ''}`} />
                     </Button>
                     {showFollowers && (
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-900 rounded-lg shadow-lg border border-gray-800 z-10">
+                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-950 rounded-lg shadow-lg border border-gray-800 z-10">
                         <ScrollArea className="h-[300px]">
                           {followersLoading ? (
                             <div className="flex justify-center items-center h-40">
@@ -597,7 +597,7 @@ const RecruiterProfile = () => {
                       <ChevronDown className={`h-4 w-4 transition-transform ${showFollowing ? 'rotate-180' : ''}`} />
                     </Button>
                     {showFollowing && (
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-900 rounded-lg shadow-lg border border-gray-800 z-10">
+                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-950 rounded-lg shadow-lg border border-gray-800 z-10">
                         <ScrollArea className="h-[300px]">
                           {followingLoading ? (
                             <div className="flex justify-center items-center h-40">
