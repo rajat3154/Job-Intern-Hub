@@ -188,7 +188,22 @@ export const getLatestInternships = async (req, res) => {
             const internships = await Internship.find()
                   .sort({ createdAt: -1 })
                   .limit(5)
-                  .populate('created_by', 'companyname profile.profilePhoto');
+                  .populate({
+                        path: 'recruiter',
+                        select: 'companyname profile',
+                        populate: {
+                              path: 'profile',
+                              select: 'profilePhoto'
+                        }
+                  })
+                  .populate({
+                        path: 'created_by',
+                        select: 'companyname profile',
+                        populate: {
+                              path: 'profile',
+                              select: 'profilePhoto'
+                        }
+                  });
 
             res.status(200).json({
                   success: true,

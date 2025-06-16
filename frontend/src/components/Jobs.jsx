@@ -260,7 +260,7 @@ const Jobs = () => {
                   <Button
                     onClick={(e) => handleSaveJob(e, job._id)}
                     variant="outline"
-                    className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 ${
+                    className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 cursor-pointer ${
                       isSaved && currentJobId === job._id
                         ? "bg-blue-500 hover:bg-blue-600"
                         : "bg-gray-600 hover:bg-gray-700"

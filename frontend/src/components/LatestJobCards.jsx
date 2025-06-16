@@ -44,7 +44,7 @@ const LatestJobCards = ({ job, onDetails, onSave, isSaved }) => {
           <Button
             onClick={handleSaveClick}
             variant="outline"
-            className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 ${
+            className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 cursor-pointer ${
               isSaved
                 ? "bg-blue-500 hover:bg-blue-600 text-black"
                 : "bg-black hover:bg-gray-700"

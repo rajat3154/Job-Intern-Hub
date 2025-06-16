@@ -156,9 +156,15 @@ const Discover = () => {
                   className="bg-gradient-to-b from-gray-900/80 to-gray-900/50 rounded-xl border border-gray-800/50 p-6 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <Avatar 
+                    <Avatar
                       className="h-16 w-16 border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-colors"
-                      onClick={() => navigate(user.userType === "recruiter" ? `/recruiter/profile/${user._id}` : `/profile/${user.userType}/${user._id}`)}
+                      onClick={() =>
+                        navigate(
+                          user.userType === "recruiter"
+                            ? `/recruiter/profile/${user._id}`
+                            : `/profile/${user.userType}/${user._id}`
+                        )
+                      }
                     >
                       <AvatarImage src={user.profile?.profilePhoto} />
                       <AvatarFallback className="bg-gray-800 text-blue-400 font-medium">
@@ -166,9 +172,15 @@ const Discover = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 
+                      <h3
                         className="font-semibold text-white truncate max-w-[150px] cursor-pointer hover:text-blue-400 transition-colors"
-                        onClick={() => navigate(user.userType === "recruiter" ? `/recruiter/profile/${user._id}` : `/profile/${user.userType}/${user._id}`)}
+                        onClick={() =>
+                          navigate(
+                            user.userType === "recruiter"
+                              ? `/recruiter/profile/${user._id}`
+                              : `/profile/${user.userType}/${user._id}`
+                          )
+                        }
                       >
                         {user.displayName}
                       </h3>
@@ -198,7 +210,7 @@ const Discover = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300"
+                      className="flex-1 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300 cursor-pointer"
                       onClick={() => handleMessageClick(user)}
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
@@ -207,7 +219,7 @@ const Discover = () => {
                     <FollowButton
                       userId={user._id}
                       userType={user.userType}
-                      className="flex-1 bg-gray-800 hover:bg-gray-700 border-gray-700"
+                      className="flex-1 bg-gray-800 hover:bg-gray-700 border-gray-700 cursor-pointer"
                     />
                   </div>
                 </motion.div>

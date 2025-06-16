@@ -3,9 +3,11 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useSelector } from "react-redux";
 
 const InternshipDescription = () => {
   const { id } = useParams();
+  const { user } = useSelector((store) => store.auth);
   const [internship, setInternship] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -93,21 +95,23 @@ const InternshipDescription = () => {
 
         <div className="flex items-center justify-between mb-6 mr-7">
           <h1 className="text-2xl font-bold">{internship.title}</h1>
-          <button
-            onClick={handleApply}
-            disabled={applying || hasApplied}
-            className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${
-              hasApplied || applying
-                ? 'bg-gray-500 text-white cursor-not-allowed'
-                : 'bg-green-500 hover:bg-green-600 text-white'
-            }`}
-          >
-            {hasApplied
-              ? "Already Applied"
-              : applying
-              ? "Applying..."
-              : "Apply Now"}
-          </button>
+          {user?.role !== "recruiter" && (
+            <button
+              onClick={handleApply}
+              disabled={applying || hasApplied}
+              className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${
+                hasApplied || applying
+                  ? 'bg-gray-500 text-white cursor-not-allowed'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
+            >
+              {hasApplied
+                ? "Already Applied"
+                : applying
+                ? "Applying..."
+                : "Apply Now"}
+            </button>
+          )}
         </div>
 
         {/* Internship details */}

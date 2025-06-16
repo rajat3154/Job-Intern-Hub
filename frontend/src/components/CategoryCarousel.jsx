@@ -34,19 +34,19 @@ const CategoryCarousel = ({ setQuery }) => {
                   <Button
                     variant="outline"
                     onClick={() => setQuery(cat)} // 🔥 Set query on click
-                    className="w-full py-3 px-6 text-lg rounded-full border-2 border-blue-500 text-white bg-black hover:bg-blue-500 hover:text-white transition-all"
+                    className="w-full py-3 px-6 text-lg rounded-full border-2 border-blue-500 text-white bg-black hover:bg-blue-500 hover:text-white transition-all cursor-pointer"
                   >
                     {cat}
                   </Button>
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <div className="absolute top-4 transform -translate-y-1/2 left-[-20px] px-2">
-              <CarouselPrevious className="bg-blue-500 text-white p-3 rounded-full" />
+            <div className="absolute top-4 transform -translate-y-1/2 left-[-20px] px-2 cursor-pointer">
+              <CarouselPrevious className="bg-blue-500 text-white p-3 rounded-full cursor-pointer" />
             </div>
 
-            <div className="absolute top-5 transform -translate-y-1/2 right-0 px-2">
-              <CarouselNext className="bg-blue-500 text-white p-3 rounded-full" />
+            <div className="absolute top-5 transform -translate-y-1/2 right-0 px-2 cursor-pointer">
+              <CarouselNext className="bg-blue-500 text-white p-3 rounded-full cursor-pointer" />
             </div>
           </Carousel>
         </div>

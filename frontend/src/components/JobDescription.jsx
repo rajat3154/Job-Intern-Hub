@@ -138,17 +138,19 @@ const JobDescription = () => {
         {/* Job Title and Apply Button */}
         <div className="flex items-center justify-between mb-6 mr-7">
           <h1 className="text-2xl font-bold">{singleJob.title}</h1>
-          <Button
-            onClick={applyJobHandler}
-            disabled={isApplied || isApplying}
-            className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${isApplied || isApplying ? 'bg-gray-500 text-white cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
-          >
-            {isApplying
-              ? "Applying..."
-              : isApplied
-                ? "Already Applied"
-                : "Apply Now"}
-          </Button>
+          {user?.role !== "recruiter" && (
+            <Button
+              onClick={applyJobHandler}
+              disabled={isApplied || isApplying}
+              className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${isApplied || isApplying ? 'bg-gray-500 text-white cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+            >
+              {isApplying
+                ? "Applying..."
+                : isApplied
+                  ? "Already Applied"
+                  : "Apply Now"}
+            </Button>
+          )}
         </div>
 
         {/* Job Info Badges */}

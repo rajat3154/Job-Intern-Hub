@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { MoreHorizontal, FileText, X } from "lucide-react";
+import { MoreHorizontal, FileText, X, MessageSquare } from "lucide-react";
 import Navbar from "./shared/Navbar";
 import { APPLICATION_API_END_POINT } from "@/utils/constant";
 import { Document, Page, pdfjs } from 'react-pdf';
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Button } from "./ui/button";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -17,6 +19,7 @@ const shortlistingStatus = ["Accepted", "Rejected"];
 
 const InternshipDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [internship, setInternship] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -131,8 +134,39 @@ const InternshipDetails = () => {
       <Navbar />
       <div className="bg-black text-white min-h-screen py-20 overflow-x-hidden">
         <div className="container px-4 ml-8 mr-10">
-          <div className="flex items-center justify-between mb-6 mr-7">
-            <h1 className="text-3xl font-bold">{internship.title}</h1>
+          {/* Company Info with Profile and Message Button */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16 border-2 border-blue-500/50">
+                <AvatarImage src={internship?.created_by?.profile?.profilePhoto} />
+                <AvatarFallback className="bg-gray-800 text-blue-400">
+                  {internship?.created_by?.companyname?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-bold">{internship?.created_by?.companyname}</h1>
+                <p className="text-gray-400">{internship?.location}</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                const selectedUser = {
+                  _id: internship?.created_by?._id,
+                  fullName: internship?.created_by?.companyname,
+                  email: internship?.created_by?.email,
+                  role: "recruiter",
+                  profilePhoto: internship?.created_by?.profile?.profilePhoto,
+                  identifier: internship?.created_by?.companyname || "Recruiter",
+                  isOnline: false,
+                };
+                localStorage.setItem("selectedUser", JSON.stringify(selectedUser));
+                navigate("/messages");
+              }}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Message
+            </Button>
           </div>
 
           <div className="flex gap-4 mb-6">
@@ -235,7 +269,7 @@ const InternshipDetails = () => {
           {/* Applicants Table */}
           <div className="mt-12">
             <h2 className="border-b-2 border-gray-300 text-xl font-medium py-4 mb-6">
-              Applicants ({applicants.length})
+              Applicants
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -250,41 +284,76 @@ const InternshipDetails = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {applicants.length > 0 ? (
+                  {applicants && applicants.length > 0 ? (
                     applicants.map((app) => (
                       <tr key={app._id} className="border-b border-gray-600">
-                        <td className="py-4">{app.applicant?.fullname || "N/A"}</td>
+                        <td className="py-4 pr-8">
+                          <div className="flex items-center gap-4">
+                            <Avatar 
+                              className="h-10 w-10 border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-colors"
+                              onClick={() => navigate(`/profile/student/${app.applicant._id}`)}
+                            >
+                              <AvatarImage src={app.applicant?.profile?.profilePhoto} />
+                              <AvatarFallback className="bg-gray-800 text-blue-400">
+                                {app.applicant?.fullname?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                              <span 
+                                className="cursor-pointer hover:text-blue-400 transition-colors flex-1"
+                                onClick={() => navigate(`/profile/student/${app.applicant._id}`)}
+                              >
+                                {app.applicant?.fullname || "N/A"}
+                              </span>
+                              <Button
+                                onClick={() => {
+                                  const selectedUser = {
+                                    _id: app.applicant._id,
+                                    fullName: app.applicant.fullname,
+                                    email: app.applicant.email,
+                                    role: "student",
+                                    profilePhoto: app.applicant.profile?.profilePhoto,
+                                    identifier: app.applicant.fullname || "Student",
+                                    isOnline: false,
+                                  };
+                                  localStorage.setItem("selectedUser", JSON.stringify(selectedUser));
+                                  navigate("/messages");
+                                }}
+                                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 h-8 px-3 whitespace-nowrap"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                Chat
+                              </Button>
+                            </div>
+                          </div>
+                        </td>
                         <td>{app.applicant?.email || "N/A"}</td>
                         <td>
-                          <span className={`px-2 py-1 rounded text-sm ${
-                            app?.status === 'accepted'
+                          <span className={`px-2 py-1 rounded text-sm ${app.status === 'accepted'
                               ? 'bg-green-500 text-white'
-                              : app?.status === 'rejected'
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-500 text-white'
-                          }`}>
-                            {app?.status ? app.status.charAt(0).toUpperCase() + app.status.slice(1).toLowerCase() : 'Pending'}
+                              : app.status === 'rejected'
+                              ? 'bg-red-500 text-white'
+                              : 'bg-yellow-500 text-white'
+                            }`}
+                          >
+                            {app.status ? app.status.charAt(0).toUpperCase() + app.status.slice(1).toLowerCase() : 'Pending'}
                           </span>
                         </td>
                         <td>
                           {app.applicant?.profile?.resume ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleViewPdf(app.applicant?.profile?.resume)}
-                                className="text-blue-400 hover:underline flex items-center gap-2"
-                              >
-                                <FileText className="w-4 h-4" />
-                                View PDF
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => handleViewPdf(app.applicant.profile.resume)}
+                              className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                            >
+                              <FileText className="h-4 w-4" />
+                              View Resume
+                            </button>
                           ) : (
                             "No Resume"
                           )}
                         </td>
                         <td>
-                          {app.createdAt
-                            ? new Date(app.createdAt).toLocaleDateString()
-                            : "N/A"}
+                          {new Date(app.createdAt).toLocaleDateString()}
                         </td>
                         <td className="relative">
                           <Popover>
@@ -296,9 +365,9 @@ const InternshipDetails = () => {
                                 <div
                                   key={index}
                                   onClick={() =>
-                                    handleStatusUpdate(status.toLowerCase(), app._id)
+                                    handleStatusUpdate(status, app._id)
                                   }
-                                  className={`px-2 py-1 rounded cursor-pointer hover:text-white`}
+                                  className="px-2 py-1 rounded cursor-pointer hover:text-white hover:bg-blue-500"
                                 >
                                   {status}
                                 </div>
@@ -310,11 +379,8 @@ const InternshipDetails = () => {
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan="6"
-                        className="py-4 text-center text-gray-400"
-                      >
-                        No applicants yet.
+                      <td colSpan="6" className="text-center py-4 text-gray-400">
+                        No applicants yet
                       </td>
                     </tr>
                   )}
