@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Mail, Briefcase, Link as LinkIcon, Pen, FileText, MapPin, Building2, Calendar, Users, Globe, MessageSquare, Bookmark, ChevronDown, UserPlus } from "lucide-react";
+import { Mail, Briefcase, Link as LinkIcon, Pen, FileText, MapPin, Building2, Calendar, Users, Globe, MessageSquare, Bookmark, ChevronDown, UserPlus, BookmarkCheck } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
@@ -40,6 +40,8 @@ const RecruiterProfile = () => {
   const [showFollowing, setShowFollowing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [savedJobsMap, setSavedJobsMap] = useState({});
+  const [savedInternshipsMap, setSavedInternshipsMap] = useState({});
   const { user: currentUser } = useSelector((store) => store.auth);
   const navigate = useNavigate();
   const { id } = useParams();
@@ -136,6 +138,59 @@ const RecruiterProfile = () => {
     checkFollowStatus();
   }, [currentUser?._id, profileData?._id, isOwnProfile]);
 
+  useEffect(() => {
+    const fetchSavedStatuses = async () => {
+      if (!currentUser || currentUser.role !== 'student' || isOwnProfile) return;
+
+      const jobPromises = postedJobs.map(async (job) => {
+        try {
+          const response = await axios.get(
+            `http://localhost:8000/api/v1/job/is-saved/${job._id}`,
+            { withCredentials: true }
+          );
+          return { jobId: job._id, isSaved: response.data.isSaved };
+        } catch (error) {
+          console.error(`Error checking saved status for job ${job._id}:`, error);
+          return { jobId: job._id, isSaved: false };
+        }
+      });
+
+      const internshipPromises = internships.map(async (internship) => {
+        try {
+          const response = await axios.get(
+            `http://localhost:8000/api/v1/internship/is-saved-internship/${internship._id}`,
+            { withCredentials: true }
+          );
+          return { internshipId: internship._id, isSaved: response.data.isSaved };
+        } catch (error) {
+          console.error(`Error checking saved status for internship ${internship._id}:`, error);
+          return { internshipId: internship._id, isSaved: false };
+        }
+      });
+
+      const [jobResults, internshipResults] = await Promise.all([
+        Promise.all(jobPromises),
+        Promise.all(internshipPromises),
+      ]);
+
+      const newSavedJobsMap = {};
+      jobResults.forEach(res => {
+        newSavedJobsMap[res.jobId] = res.isSaved;
+      });
+      setSavedJobsMap(newSavedJobsMap);
+
+      const newSavedInternshipsMap = {};
+      internshipResults.forEach(res => {
+        newSavedInternshipsMap[res.internshipId] = res.isSaved;
+      });
+      setSavedInternshipsMap(newSavedInternshipsMap);
+    };
+
+    if (postedJobs.length > 0 || internships.length > 0) {
+      fetchSavedStatuses();
+    }
+  }, [postedJobs, internships, currentUser, isOwnProfile]);
+
   const handleJobPosted = async () => {
     try {
       const jobsRes = await axios.get(
@@ -190,26 +245,44 @@ const RecruiterProfile = () => {
 
   const handleSaveJob = async (jobId) => {
     try {
-      await axios.post(
-        `http://localhost:8000/api/v1/job/save/${jobId}`,
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/job/save-job/${jobId}`,
         {},
         { withCredentials: true }
       );
-      toast.success("Job saved successfully");
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setSavedJobsMap(prevMap => ({
+          ...prevMap,
+          [jobId]: response.data.isSaved
+        }));
+      } else {
+        toast.error("Failed to save job");
+      }
     } catch (error) {
+      console.error("Error saving job:", error);
       toast.error("Failed to save job");
     }
   };
 
   const handleSaveInternship = async (internshipId) => {
     try {
-      await axios.post(
-        `http://localhost:8000/api/v1/internship/save/${internshipId}`,
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/internship/save-internship/${internshipId}`,
         {},
         { withCredentials: true }
       );
-      toast.success("Internship saved successfully");
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setSavedInternshipsMap(prevMap => ({
+          ...prevMap,
+          [internshipId]: response.data.isSaved
+        }));
+      } else {
+        toast.error("Failed to save internship");
+      }
     } catch (error) {
+      console.error("Error saving internship:", error);
       toast.error("Failed to save internship");
     }
   };
@@ -309,17 +382,27 @@ const RecruiterProfile = () => {
             Delete
           </Button>
         ) : (
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSaveJob(job._id);
-            }}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Bookmark className="h-4 w-4 mr-1" />
-            Save
-          </Button>
+          !isOwnProfile && currentUser?.role === 'student' && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveJob(job._id);
+              }}
+              size="sm"
+              className={`text-white ${
+                savedJobsMap[job._id]
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {savedJobsMap[job._id] ? (
+                <BookmarkCheck className="h-4 w-4 mr-1" />
+              ) : (
+                <Bookmark className="h-4 w-4 mr-1" />
+              )}
+              {savedJobsMap[job._id] ? "Saved" : "Save"}
+            </Button>
+          )
         )}
       </div>
 
@@ -397,17 +480,27 @@ const RecruiterProfile = () => {
             Delete
           </Button>
         ) : (
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSaveInternship(internship._id);
-            }}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Bookmark className="h-4 w-4 mr-1" />
-            Save
-          </Button>
+          !isOwnProfile && currentUser?.role === 'student' && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveInternship(internship._id);
+              }}
+              size="sm"
+              className={`text-white ${
+                savedInternshipsMap[internship._id]
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {savedInternshipsMap[internship._id] ? (
+                <BookmarkCheck className="h-4 w-4 mr-1" />
+              ) : (
+                <Bookmark className="h-4 w-4 mr-1" />
+              )}
+              {savedInternshipsMap[internship._id] ? "Saved" : "Save"}
+            </Button>
+          )
         )}
       </div>
 

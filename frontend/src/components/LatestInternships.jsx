@@ -22,6 +22,7 @@ const LatestInternships = () => {
       );
 
       const data = await response.json();
+      console.log(data);
       if (data.success && Array.isArray(data.internships)) {
         setLatestInternships(data.internships);
       }

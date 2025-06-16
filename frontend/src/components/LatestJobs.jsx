@@ -20,6 +20,7 @@ const LatestJobs = () => {
       });
 
       const data = await response.json();
+      console.log(data);
       if (data.success && Array.isArray(data.jobs)) {
         setLatestJobs(data.jobs);
         // Initialize saved status for each job

@@ -3,9 +3,15 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, FileText, X } from "lucide-react";
 import Navbar from "./shared/Navbar";
 import { APPLICATION_API_END_POINT } from "@/utils/constant";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
+
+// Set up the worker for react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 const shortlistingStatus = ["Accepted", "Rejected"];
 
@@ -15,6 +21,11 @@ const InternshipDetails = () => {
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [numPages, setNumPages] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pdfError, setPdfError] = useState(null);
 
   const fetchInternshipDetails = async () => {
     try {
@@ -37,8 +48,7 @@ const InternshipDetails = () => {
         { withCredentials: true }
       );
       console.log(res);
-      setApplicants((res.data.applicants || []).filter((app) => app !== null));
-
+      setApplicants((res.data.internship?.applications || []).filter((app) => app !== null));
     } catch (error) {
       console.error("Failed to fetch applicants:", error);
       toast.error("Error loading applicants");
@@ -67,7 +77,12 @@ const InternshipDetails = () => {
       if (res.data.success) {
         toast.success(res.data.message);
         // Refresh job data after updating status
-        fetchApplicants();
+        // Instead of refetching all applicants, update the state locally
+        setApplicants((prevApplicants) =>
+          prevApplicants.map((app) =>
+            app._id === appId ? { ...app, status: status.toLowerCase() } : app
+          )
+        );
       } else {
         toast.error("Status update failed");
       }
@@ -79,6 +94,22 @@ const InternshipDetails = () => {
     }
   };
   
+  function onDocumentLoadSuccess({ numPages }) {
+    setNumPages(numPages);
+    setPdfError(null);
+  }
+
+  function onDocumentLoadError(error) {
+    console.error('Error loading PDF:', error);
+    setPdfError('Failed to load PDF. Please try again.');
+  }
+
+  const handleViewPdf = (url) => {
+    // Use Google Docs Viewer
+    const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    setPdfUrl(googleDocsUrl);
+    setShowPdf(true);
+  };
 
   useEffect(() => {
     fetchInternshipDetails();
@@ -175,6 +206,30 @@ const InternshipDetails = () => {
                 {new Date(internship.createdAt).toLocaleDateString()}
               </span>
             </h1>
+            <h1 className="font-bold text-lg">
+              Total Applicants:{" "}
+              <span className="font-normal text-gray-300">
+                {applicants.length || 0}
+              </span>
+            </h1>
+            <h1 className="font-bold text-lg">
+              Accepted:{" "}
+              <span className="font-normal text-gray-300">
+                {applicants.filter(app => app.status === 'accepted').length}
+              </span>
+            </h1>
+            <h1 className="font-bold text-lg">
+              Rejected:{" "}
+              <span className="font-normal text-gray-300">
+                {applicants.filter(app => app.status === 'rejected').length}
+              </span>
+            </h1>
+            <h1 className="font-bold text-lg">
+              Pending:{" "}
+              <span className="font-normal text-gray-300">
+                {applicants.filter(app => app.status === 'pending' || !app.status).length}
+              </span>
+            </h1>
           </div>
 
           {/* Applicants Table */}
@@ -198,23 +253,30 @@ const InternshipDetails = () => {
                   {applicants.length > 0 ? (
                     applicants.map((app) => (
                       <tr key={app._id} className="border-b border-gray-600">
-                        <td className="py-4">{app?.fullname || "N/A"}</td>
-                        <td>{app?.email || "N/A"}</td>
+                        <td className="py-4">{app.applicant?.fullname || "N/A"}</td>
+                        <td>{app.applicant?.email || "N/A"}</td>
                         <td>
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">
-                            {app?.status || "Pending"}
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            app?.status === 'accepted'
+                              ? 'bg-green-500 text-white'
+                              : app?.status === 'rejected'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-500 text-white'
+                          }`}>
+                            {app?.status ? app.status.charAt(0).toUpperCase() + app.status.slice(1).toLowerCase() : 'Pending'}
                           </span>
                         </td>
                         <td>
-                          {app?.profile?.resume ? (
-                            <a
-                              href={app?.profile?.resume}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:underline"
-                            >
-                              View Resume
-                            </a>
+                          {app.applicant?.profile?.resume ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleViewPdf(app.applicant?.profile?.resume)}
+                                className="text-blue-400 hover:underline flex items-center gap-2"
+                              >
+                                <FileText className="w-4 h-4" />
+                                View PDF
+                              </button>
+                            </div>
                           ) : (
                             "No Resume"
                           )}
@@ -234,9 +296,9 @@ const InternshipDetails = () => {
                                 <div
                                   key={index}
                                   onClick={() =>
-                                    handleStatusUpdate(status, app._id)
+                                    handleStatusUpdate(status.toLowerCase(), app._id)
                                   }
-                                  className="px-2 py-1 rounded cursor-pointer hover:text-white hover:bg-blue-500"
+                                  className={`px-2 py-1 rounded cursor-pointer hover:text-white`}
                                 >
                                   {status}
                                 </div>
@@ -262,6 +324,23 @@ const InternshipDetails = () => {
           </div>
         </div>
       </div>
+      {showPdf && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-black p-4 rounded-lg w-11/12 h-5/6 relative border border-gray-700">
+            <button
+              onClick={() => setShowPdf(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <iframe
+              src={pdfUrl}
+              className="w-full h-full rounded"
+              title="PDF Viewer"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };

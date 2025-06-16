@@ -248,52 +248,80 @@ export const logout = async (req, res) => {
 export const updateProfile = async (req, res) => {
       try {
             const { fullname, email, phonenumber, bio, skills } = req.body;
-            const resumeFile = req.files?.file?.[0];
-            const photoFile = req.files?.profilePhoto?.[0];
+            const userId = req.user._id;
 
-            const user = await Student.findById(req.user._id);
-            if (!user) {
-                  return res.status(400).json({ message: "User not found", success: false });
+            // Find the student
+            const student = await Student.findById(userId);
+            if (!student) {
+                  return res.status(404).json({
+                        message: "Student not found",
+                        success: false
+                  });
             }
 
-            if (fullname) user.fullname = fullname;
-            if (email) user.email = email;
-            if (phonenumber) user.phonenumber = phonenumber;
-            if (bio) user.profile.bio = bio;
-            if (skills) user.profile.skills = skills.split(",");
+            // Update basic info
+            student.fullname = fullname || student.fullname;
+            student.email = email || student.email;
+            student.phonenumber = phonenumber || student.phonenumber;
 
-            if (resumeFile) {
-                  const fileUri = getDataUri(resumeFile);
+            // Initialize profile if it doesn't exist
+            if (!student.profile) {
+                  student.profile = {};
+            }
+
+            // Update profile fields
+            student.profile.bio = bio || student.profile.bio;
+            student.profile.skills = skills ? skills.split(',').map(skill => skill.trim()) : student.profile.skills;
+
+            // Handle profile photo upload
+            if (req.files && req.files.profilePhoto && req.files.profilePhoto[0]) {
+                  const file = req.files.profilePhoto[0];
+                  const fileUri = getDataUri(file);
+                  const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+                  student.profile.profilePhoto = cloudResponse.secure_url;
+            }
+
+            // Handle resume upload
+            if (req.files && req.files.file && req.files.file[0]) {
+                  const file = req.files.file[0];
+                  const fileUri = getDataUri(file);
                   const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
                         resource_type: "raw",
+                        format: "pdf"
                   });
-                  user.profile.resume = cloudResponse.secure_url;
-                  user.profile.resumeOriginalName = resumeFile.originalname;
+                  student.profile.resume = cloudResponse.secure_url;
+                  student.profile.resumeOriginalName = file.originalname;
             }
 
-            if (photoFile) {
-                  const photoUri = getDataUri(photoFile);
-                  const photoUpload = await cloudinary.uploader.upload(photoUri.content, {
-                        folder: "profile_photos",
-                  });
-                  user.profile.profilePhoto = photoUpload.secure_url;
-            }
+            // Save the updated student
+            await student.save();
 
-            await user.save();
+            // Return updated user data
+            const updatedUser = {
+                  _id: student._id,
+                  fullname: student.fullname,
+                  email: student.email,
+                  phonenumber: student.phonenumber,
+                  role: student.role,
+                  status: student.status,
+                  profile: student.profile
+            };
 
             return res.status(200).json({
                   message: "Profile updated successfully",
-                  user,
                   success: true,
+                  user: updatedUser
             });
+
       } catch (error) {
-            console.error("Update Profile Error:", error.message);
+            console.error("Error in updateProfile:", error);
             return res.status(500).json({
                   message: "Internal server error",
                   success: false,
+                  error: error.message
             });
       }
-    };
+};
 export const getAllStudents = async (req, res) => {
       try {
             const students = await Student.find().sort({ createdAt: -1 });

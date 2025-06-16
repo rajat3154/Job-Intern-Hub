@@ -93,13 +93,22 @@ export const getInternshipById = async (req, res) => {
 
             console.log("Received internshipId:", internshipId);
 
-            const internship = await Internship.findById(internshipId).populate({
+            const internship = await Internship.findById(internshipId)
+            .populate({
                   path: "applications",
                   populate: {
                         path: "applicant",
                         model: "Student",
                         select: "fullname email resumeUrl"
                   }
+            })
+            .populate({
+              path: 'created_by',
+              select: 'companyname profile',
+              populate: {
+                path: 'profile',
+                select: 'profilePhoto'
+              }
             });
 
             if (!internship) {
@@ -254,29 +263,28 @@ export const saveInternship = async (req, res) => {
                   });
             }
       } catch (error) {
-            console.error("Error saving/unsaving Internship:", error);
+            console.error("Error saving/unsaving internship:", error);
             return res.status(500).json({
                   success: false,
-                  message: "Error saving/unsaving Internship"
+                  message: "Error saving/unsaving internship"
             });
       }
 };
 export const deleteInternship = async (req, res) => {
       try {
             const internshipId = req.params.id;
-            const userId = req.user._id;
+            const recruiterId = req.user._id;
 
-            // Check if the internship exists and belongs to the recruiter
-            const internship = await Internship.findOne({ _id: internshipId, recruiter: userId });
+            const internship = await Internship.findOne({ _id: internshipId, created_by: recruiterId });
 
             if (!internship) {
                   return res.status(404).json({
                         success: false,
-                        message: "Internship not found or unauthorized to delete",
+                        message: "Internship not found or you're not authorized to delete this internship",
                   });
             }
 
-            await Internship.findByIdAndDelete(internshipId);
+            await internship.deleteOne();
 
             return res.status(200).json({
                   success: true,

@@ -58,7 +58,14 @@ export const getAllJobs = async (req, res) => {
             };
 
           const jobs = await Job.find(query)
-            .populate({ path: "recruiter", select: "companyname email companyaddress companystatus profile" })
+            .populate({
+              path: "created_by", 
+              select: "companyname email companyaddress companystatus profile",
+              populate: {
+                path: 'profile',
+                select: 'profilePhoto bio'
+              }
+            })
   .sort({ createdAt: -1 });
 
             if (!jobs || jobs.length === 0) {
@@ -85,8 +92,17 @@ export const getAllJobs = async (req, res) => {
 export const getJobById = async (req, res) => {
       try {
             const jobId = req.params.id;
-            const job = await Job.findById(jobId).populate({
+            const job = await Job.findById(jobId)
+            .populate({
                   path: "applications"
+            })
+            .populate({
+              path: 'created_by',
+              select: 'companyname profile',
+              populate: {
+                path: 'profile',
+                select: 'profilePhoto'
+              }
             });
             if (!job) {
                   return res.status(404).json({
@@ -154,7 +170,14 @@ export const getRecruiterJobs = async (req, res) => {
 export const getLatestJobs = async (req, res) => {
       try {
             const latestJobs = await Job.find()
-                  .populate('recruiter', 'companyname profile') // Recruiter name and profile
+                  .populate({
+                    path: 'created_by',
+                    select: 'companyname profile',
+                    populate: {
+                      path: 'profile',
+                      select: 'profilePhoto'
+                    }
+                  })
                   .sort({ createdAt: -1 }) // Sort by newest first
                   .limit(5); // Fetch only top 5
 

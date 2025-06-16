@@ -38,6 +38,11 @@ import LatestJobCards from "./LatestJobCards";
 import LatestInternshipCards from "./LatestInternshipCards";
 import { formatDistanceToNow } from 'date-fns';
 import FollowButton from "./FollowButton";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 const Profile = () => {
   const [open, setOpen] = useState(false);
@@ -57,6 +62,12 @@ const Profile = () => {
   const [savedInternships, setSavedInternships] = useState([]);
   const [savedJobsLoading, setSavedJobsLoading] = useState(true);
   const [savedInternshipsLoading, setSavedInternshipsLoading] = useState(true);
+  const [showPdf, setShowPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [numPages, setNumPages] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
   const { user: currentUser } = useSelector((store) => store.auth);
   const { userId, userType } = useParams();
   const navigate = useNavigate();
@@ -363,6 +374,42 @@ const Profile = () => {
     return formatDistanceToNow(new Date(lastSeen), { addSuffix: true });
   };
 
+  const handleViewPdf = (url) => {
+    if (!url) {
+      toast.error("No resume available");
+      return;
+    }
+
+    // Use Google Docs Viewer
+    const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    setPdfUrl(googleDocsUrl);
+    setShowPdf(true);
+  };
+
+  const onDocumentLoadSuccess = ({ numPages }) => {
+    console.log('PDF loaded successfully with', numPages, 'pages');
+    setNumPages(numPages);
+    setPageNumber(1);
+    setPdfLoading(false);
+    setPdfError(null);
+  };
+
+  const onDocumentLoadError = (error) => {
+    console.error("Error loading document:", error);
+    setPdfError("Failed to load PDF. Please try again.");
+    setPdfLoading(false);
+    toast.error("Failed to load PDF. Please try again.");
+  };
+
+  const handleClosePdf = () => {
+    setShowPdf(false);
+    setPdfUrl("");
+    setNumPages(null);
+    setPageNumber(1);
+    setPdfLoading(false);
+    setPdfError(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
@@ -523,15 +570,16 @@ const Profile = () => {
                 Resume
               </h2>
               {profileUser?.profile?.resume ? (
-                <a
-                  href={profileUser.profile.resume}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-blue-400 hover:underline"
+                <Button
+                  onClick={() =>
+                    handleViewPdf(profileUser.profile.resume)
+                  }
+                  variant="ghost"
+                  className="inline-flex items-center gap-2 text-blue-400 hover:underline px-0"
                 >
                   <LinkIcon className="h-5 w-5" />
                   {profileUser.profile.resumeOriginalName || "View Resume"}
-                </a>
+                </Button>
               ) : (
                 <span className="text-gray-500">No resume uploaded</span>
               )}
@@ -1088,6 +1136,28 @@ const Profile = () => {
 
       {/* Update Dialog */}
       <UpdateProfileDialog open={open} setOpen={setOpen} />
+
+      {showPdf && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="relative bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h3 className="text-xl font-semibold text-white">Resume Preview</h3>
+              <Button onClick={handleClosePdf} variant="ghost" className="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </Button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={pdfUrl}
+                className="w-full h-full"
+                title="PDF Viewer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const InternshipDescription = () => {
   const { id } = useParams();
@@ -17,6 +18,7 @@ const InternshipDescription = () => {
         `http://localhost:8000/api/v1/internship/get/${id}`,
         { withCredentials: true }
       );
+      console.log(data);
       setInternship(data.internship);
 
       // If current user has applied, get their application status
@@ -73,15 +75,31 @@ const InternshipDescription = () => {
   return (
     <div className="bg-black text-white min-h-screen py-20 overflow-x-hidden">
       <div className="container px-4 ml-8 mr-10">
+        {/* Company Info */}
+        <div className="flex items-center gap-3 mb-6">
+          <Avatar className="h-12 w-12 border border-blue-500/30">
+            <AvatarImage src={internship.created_by?.profile?.profilePhoto} />
+            <AvatarFallback className="bg-gray-800 text-blue-400">
+              {internship.created_by?.companyname?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="font-semibold text-3xl">
+              {internship.created_by?.companyname}
+            </h1>
+            <p className="text-sm text-gray-400">{internship.location}</p>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between mb-6 mr-7">
-          <h1 className="text-3xl font-bold">{internship.title}</h1>
+          <h1 className="text-2xl font-bold">{internship.title}</h1>
           <button
             onClick={handleApply}
             disabled={applying || hasApplied}
-            className={`px-4 py-2 text-sm rounded-md font-semibold ${
-              hasApplied
-                ? "bg-gray-600 text-white cursor-not-allowed"
-                : "bg-green-500 hover:bg-green-600"
+            className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${
+              hasApplied || applying
+                ? 'bg-gray-500 text-white cursor-not-allowed'
+                : 'bg-green-500 hover:bg-green-600 text-white'
             }`}
           >
             {hasApplied

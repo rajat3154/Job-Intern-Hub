@@ -201,6 +201,7 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
       <div className="p-4 border-b border-gray-800">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-blue-400">Chats</h2>
+         
         </div>
 
         <div className="relative">
@@ -370,14 +371,14 @@ const Sidebar = ({ selectedUser, onSelectUser, unreadCounts, setUnreadCounts, so
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={authUser?.profilePhoto} />
+              <AvatarImage src={authUser?.profile?.profilePhoto} />
               <AvatarFallback>
                 {authUser?.fullName?.charAt(0) || authUser?.fullname?.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-medium text-white">
-                {authUser?.fullName || authUser?.fullname}
+                {authUser?.role === "recruiter" ? authUser?.companyname : authUser?.fullName || authUser?.fullname}
               </h3>
               <p className="text-xs text-gray-400">
                 {authUser?.role === "student" ? "Student" : "Recruiter"}

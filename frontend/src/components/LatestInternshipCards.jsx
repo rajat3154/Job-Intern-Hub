@@ -5,11 +5,13 @@ import { useSelector } from "react-redux";
 import profilePic from "./assets/a.jpg";
 import { toast } from "sonner";
 import { Bookmark, BookmarkCheck } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 
 const LatestInternshipCards = ({ internship }) => {
   const navigate = useNavigate();
   const { user } = useSelector((store) => store.auth);
   const [isSaved, setIsSaved] = useState(false);
+  const isRecruiter = user?.role === "recruiter";
 
   // Check saved status on mount
   useEffect(() => {
@@ -92,18 +94,20 @@ const LatestInternshipCards = ({ internship }) => {
         >
           View Details
         </Button>
-        <Button
-                 onClick={handleSaveInternship}
-                 variant="outline"
-                 className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 ${
-                   isSaved
-                     ? "bg-blue-500 hover:bg-blue-600 text-black "
-                     : "bg-black hover:bg-gray-700"
-                 }`}
-               >
-                 {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-                 {isSaved ? "Saved" : "Save Internship"}
-               </Button>
+        {!isRecruiter && (
+          <Button
+            onClick={handleSaveInternship}
+            variant="outline"
+            className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 ${
+              isSaved
+                ? "bg-blue-500 hover:bg-blue-600 text-black"
+                : "bg-black hover:bg-gray-700"
+            }`}
+          >
+            {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+            {isSaved ? "Saved" : "Save Internship"}
+          </Button>
+        )}
       </div>
 
       {/* Card Content */}
@@ -115,11 +119,12 @@ const LatestInternshipCards = ({ internship }) => {
 
         {/* Company Info */}
         <div className="flex gap-3 mb-4">
-          <img
-            src={internship?.recruiter?.profile?.profilePhoto || profilePic}
-            alt="Company Logo"
-            className="w-10 h-10 rounded-full object-cover border border-gray-600"
-          />
+          <Avatar className="w-10 h-10 rounded-full object-cover border border-gray-600">
+            <AvatarImage src={internship?.created_by?.profile?.profilePhoto} />
+            <AvatarFallback className="bg-gray-800 text-blue-400">
+              {internship?.recruiter?.companyname?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
           <div className="text-left">
             <h2 className="text-base font-semibold line-clamp-1">
               {internship?.recruiter?.companyname || "Company Name"}

@@ -1,8 +1,12 @@
 import React from "react";
 import { Button } from "./ui/button";
 import { Bookmark, BookmarkCheck } from "lucide-react";
+import { useSelector } from "react-redux";
 
 const LatestJobCards = ({ job, onDetails, onSave, isSaved }) => {
+  const { user } = useSelector((store) => store.auth);
+  const isRecruiter = user?.role === "recruiter";
+
   const handleSaveClick = (e) => {
     e.stopPropagation();
     if (onSave) {
@@ -36,24 +40,26 @@ const LatestJobCards = ({ job, onDetails, onSave, isSaved }) => {
         >
           View Details
         </Button>
-        <Button
-          onClick={handleSaveClick}
-          variant="outline"
-          className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 ${
-            isSaved
-              ? "bg-blue-500 hover:bg-blue-600 text-black"
-              : "bg-black hover:bg-gray-700"
-          }`}
-        >
-          {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-          {isSaved ? "Saved" : "Save Job"}
-        </Button>
+        {!isRecruiter && (
+          <Button
+            onClick={handleSaveClick}
+            variant="outline"
+            className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 ${
+              isSaved
+                ? "bg-blue-500 hover:bg-blue-600 text-black"
+                : "bg-black hover:bg-gray-700"
+            }`}
+          >
+            {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+            {isSaved ? "Saved" : "Save Job"}
+          </Button>
+        )}
       </div>
 
       {/* Card Content */}
-      <div className="mt-12 flex flex-col flex-grow">
+      <div className="mt-12 flex flex-col flex-grow text-left">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 text-left">
             {job.createdAt ? new Date(job.createdAt).toDateString() : "N/A"}
           </p>
         </div>
@@ -67,7 +73,7 @@ const LatestJobCards = ({ job, onDetails, onSave, isSaved }) => {
             alt="Company Logo"
             className="w-12 h-12 rounded-full"
           />
-          <div>
+          <div className="text-left">
             <h1 className="font-semibold text-lg">
               {job.company || "Company"}
             </h1>
@@ -77,9 +83,9 @@ const LatestJobCards = ({ job, onDetails, onSave, isSaved }) => {
           </div>
         </div>
 
-        <div className="mb-4 flex-grow">
-          <h1 className="font-bold text-xl mb-3">{job.title || "Job Title"}</h1>
-          <p className="text-sm text-gray-300 line-clamp-3">
+        <div className="mb-4 flex-grow text-left">
+          <h1 className="font-bold text-xl mb-3 text-left">{job.title || "Job Title"}</h1>
+          <p className="text-sm text-gray-300 line-clamp-3 text-left">
             {job.description || "No description available."}
           </p>
         </div>
