@@ -1,6 +1,7 @@
 import { Job } from "../models/job.model.js";
 import { Student } from "../models/student.model.js";
 import  {Recruiter}  from "../models/recruiter.model.js";
+import mongoose from 'mongoose';
 
 export const postJob = async (req, res) => {
       try {
@@ -220,6 +221,13 @@ export const saveJob = async (req, res) => {
             const jobId = req.params.id;
             const userId = req.user._id;
 
+            if (!jobId) {
+                  return res.status(400).json({
+                        success: false,
+                        message: "Job ID is required"
+                  });
+            }
+
             const student = await Student.findById(userId);
             if (!student) {
                   return res.status(404).json({
@@ -228,10 +236,18 @@ export const saveJob = async (req, res) => {
                   });
             }
 
-            const isAlreadySaved = student.savedJobs.includes(jobId);
+            // Ensure jobId is a valid ObjectId
+            if (!mongoose.Types.ObjectId.isValid(jobId)) {
+                  return res.status(400).json({
+                        success: false,
+                        message: "Invalid job ID format"
+                  });
+            }
+
+            const isAlreadySaved = student.savedJobs.some(id => id && id.toString() === jobId);
             if (isAlreadySaved) {
                   // If already saved, remove it (unsave)
-                  student.savedJobs = student.savedJobs.filter(id => id.toString() !== jobId);
+                  student.savedJobs = student.savedJobs.filter(id => id && id.toString() !== jobId);
                   await student.save();
                   return res.status(200).json({
                         success: true,
