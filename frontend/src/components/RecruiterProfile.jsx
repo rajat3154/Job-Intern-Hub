@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Mail, Briefcase, Link as LinkIcon, Pen, FileText, MapPin, Building2, Calendar, Users, Globe, MessageSquare, Bookmark, ChevronDown, UserPlus, BookmarkCheck } from "lucide-react";
+import { Mail, Briefcase, Link as LinkIcon, Pen, FileText, MapPin, Building2, Calendar, Users, Globe, MessageSquare, Bookmark, ChevronDown, UserPlus, BookmarkCheck, Loader2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
@@ -34,8 +34,8 @@ const RecruiterProfile = () => {
   const [showPostInternship, setShowPostInternship] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
-  const [followersLoading, setFollowersLoading] = useState(true);
-  const [followingLoading, setFollowingLoading] = useState(true);
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [followingLoading, setFollowingLoading] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -46,6 +46,8 @@ const RecruiterProfile = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isOwnProfile = !id || id === currentUser?._id;
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -197,10 +199,19 @@ const RecruiterProfile = () => {
         "http://localhost:8000/api/v1/job/recruiter",
         { withCredentials: true }
       );
+      console.log("Response from job refetch after posting:", jobsRes.data);
       setPostedJobs(jobsRes.data.jobs || []);
       setShowPostJob(false);
     } catch (error) {
-      console.error("Error fetching jobs:", error);
+      console.error("Error fetching jobs after posting:", error);
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+      } else if (error.request) {
+        console.error("Error request:", error.request);
+      } else {
+        console.error("Error message:", error.message);
+      }
     }
   };
 
@@ -288,59 +299,128 @@ const RecruiterProfile = () => {
   };
 
   const handleFollow = async () => {
-    if (!currentUser?._id || !profileData?._id) {
-      toast.error("Please login to follow");
+    if (!currentUser) {
+      navigate('/login');
       return;
     }
 
     try {
       setFollowLoading(true);
-      if (isFollowing) {
-        await axios.delete(
-          `http://localhost:8000/api/v1/follow/${currentUser._id}/${profileData._id}`,
-          {
-            headers: { "Content-Type": "application/json" },
-            withCredentials: true,
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/follow/toggle`,
+        {
+          targetUserId: profileData._id,
+          targetUserType: 'recruiter'
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
           }
-        );
-        setIsFollowing(false);
-        toast.success("Unfollowed successfully");
-      } else {
-        await axios.post(
-          `http://localhost:8000/api/v1/follow/${currentUser._id}/${profileData._id}`,
-          {},
-          {
-            headers: { "Content-Type": "application/json" },
-            withCredentials: true,
-          }
-        );
-        setIsFollowing(true);
-        toast.success("Followed successfully");
+        }
+      );
+
+      if (response.data.success) {
+        setIsFollowing(!isFollowing);
+        // Refresh followers count
+        fetchFollowers();
       }
     } catch (error) {
-      console.error("Error following/unfollowing:", error);
-      toast.error("Failed to update follow status");
+      console.error('Error toggling follow:', error);
+      toast.error('Failed to update follow status');
     } finally {
       setFollowLoading(false);
     }
   };
 
-  const handleMessageClick = () => {
-    if (!currentUser?._id || !profileData?._id) {
-      toast.error("Please login to message");
-      return;
+  const fetchFollowers = async () => {
+    try {
+      setFollowersLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/follow/followers/${profileData._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      setFollowers(response.data.followers);
+    } catch (error) {
+      console.error('Error fetching followers:', error);
+    } finally {
+      setFollowersLoading(false);
     }
+  };
+
+  const fetchFollowing = async () => {
+    try {
+      setFollowingLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/follow/following/${profileData._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      setFollowing(response.data.following);
+    } catch (error) {
+      console.error('Error fetching following:', error);
+    } finally {
+      setFollowingLoading(false);
+    }
+  };
+
+  const checkFollowStatus = async () => {
+    if (!currentUser || !profileData) return;
+
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/follow/status/${profileData._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      setIsFollowing(response.data.isFollowing);
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser && profileData) {
+      checkFollowStatus();
+    }
+  }, [currentUser, profileData]);
+
+  useEffect(() => {
+    if (profileData) {
+      fetchFollowers();
+      fetchFollowing();
+    }
+  }, [profileData]);
+
+  const handleMessageClick = (profile) => {
     const selectedUser = {
-      _id: profileData._id,
-      fullName: profileData.companyname,
-      email: profileData.email,
+      _id: profile._id,
+      fullName: profile.companyname,
+      email: profile.email,
       role: "recruiter",
-      profilePhoto: profileData.profile?.profilePhoto,
-      identifier: profileData.companyname || "Recruiter",
+      profilePhoto: profile.profile?.profilePhoto,
+      identifier: profile.companyname || "Recruiter",
       isOnline: false,
     };
     localStorage.setItem("selectedUser", JSON.stringify(selectedUser));
     navigate("/messages");
+  };
+
+  const handleProfileClick = (user) => {
+    navigate(
+      user.userType === "recruiter"
+        ? `/recruiter/profile/${user._id}`
+        : `/profile/${user.userType}/${user._id}`
+    );
   };
 
   const toggleFollowers = () => {
@@ -356,7 +436,7 @@ const RecruiterProfile = () => {
   const renderJobCard = (job) => (
     <div
       key={job._id}
-      className="relative p-6 rounded-xl bg-gray-900 text-white border border-gray-800 hover:border-blue-500 cursor-pointer transition-all duration-300 w-full"
+      className="relative p-6 rounded-xl bg-gray-950 text-white border border-gray-800 hover:border-blue-500 cursor-pointer transition-all duration-300 w-full"
       onClick={() => navigate(`/job/details/${job._id}`)}
     >
       <div className="absolute top-4 right-4 flex gap-2">
@@ -454,7 +534,7 @@ const RecruiterProfile = () => {
   const renderInternshipCard = (internship) => (
     <div
       key={internship._id}
-      className="relative p-6 rounded-xl bg-gray-900 text-white border border-gray-800 hover:border-blue-500 cursor-pointer transition-all duration-300 w-full"
+      className="relative p-6 rounded-xl bg-gray-950 text-white border border-gray-800 hover:border-blue-500 cursor-pointer transition-all duration-300 w-full"
       onClick={() => navigate(isOwnProfile ? `/internship/details/${internship._id}` : `/internship/description/${internship._id}`)}
     >
       <div className="absolute top-4 right-4 flex gap-2">
@@ -562,246 +642,48 @@ const RecruiterProfile = () => {
     );
   }
 
+  if (!profileData) {
+    return (
+      <div className="bg-black text-white min-h-screen py-8 flex items-center justify-center">
+        <p className="text-lg text-gray-400">Recruiter profile not found.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-
-      {/* Modals */}
-      {showPostJob && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <PostJob onClose={() => setShowPostJob(false)} onJobPosted={handleJobPosted} />
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      )}
-
-      {showPostInternship && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <PostInternship
-            onClose={() => setShowPostInternship(false)}
-            onInternshipPosted={handleInternshipPosted}
-          />
-        </div>
-      )}
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Profile Header */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-full max-w-4xl">
-            <div className="flex flex-col md:flex-row gap-8 items-center">
-              <div className="flex-shrink-0">
-                <Avatar className="h-32 w-32 border-2 border-blue-500">
-                  <AvatarImage src={profileData?.profile?.profilePhoto} />
-                  <AvatarFallback className="bg-gray-800 text-blue-400 text-3xl">
-                    {profileData?.companyname?.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h1 className="text-2xl font-bold">{profileData?.companyname}</h1>
-                    <p className="text-gray-400">{profileData?.profile?.tagline || "Recruiter"}</p>
-                  </div>
-
-                  {/* Action Buttons for Non-Recruiters */}
-                  {!isOwnProfile && currentUser?.role !== "recruiter" && (
-                    <div className="flex gap-3">
-                      <FollowButton
-                        userId={profileData?._id}
-                        userType="recruiter"
-                        className="w-32"
-                        size="default"
-                      />
-                      <Button
-                        variant="outline"
-                        size="default"
-                        className="w-32 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300"
-                        onClick={handleMessageClick}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Message
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Followers/Following Dropdowns */}
-                <div className="flex gap-4 mb-6">
-                  <div className="relative">
+      ) : (
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Card className="bg-gray-950 border border-gray-800">
+            <CardContent className="p-6">
+              {/* Action Buttons - Top Right Corner */}
+              <div className="flex justify-end gap-2 mb-4">
+                {!isOwnProfile && currentUser?.role && (
+                  <div className="flex gap-3 mt-4 md:mt-0">
                     <Button
-                      variant="ghost"
-                      className="text-gray-400 hover:text-white flex items-center gap-2"
-                      onClick={toggleFollowers}
+                      onClick={() => handleMessageClick(profileData)}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300 cursor-pointer"
                     >
-                      <Users className="h-4 w-4" />
-                      {followers.length} Followers
-                      <ChevronDown className={`h-4 w-4 transition-transform ${showFollowers ? 'rotate-180' : ''}`} />
+                      <MessageSquare className="h-5 w-5" />
+                      Message
                     </Button>
-                    {showFollowers && (
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-950 rounded-lg shadow-lg border border-gray-800 z-10">
-                        <ScrollArea className="h-[300px]">
-                          {followersLoading ? (
-                            <div className="flex justify-center items-center h-40">
-                              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                            </div>
-                          ) : followers.length > 0 ? (
-                            <div className="p-2">
-                              {followers.map((follower) => (
-                                <div
-                                  key={follower._id}
-                                  className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
-                                  onClick={() => navigate(`/profile/${follower.role.toLowerCase()}/${follower._id}`)}
-                                >
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage src={follower.profile?.profilePhoto} />
-                                    <AvatarFallback className="bg-gray-700">
-                                      {follower.fullname?.charAt(0) || follower.companyname?.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <h3 className="text-sm font-medium">
-                                      {follower.fullname || follower.companyname}
-                                    </h3>
-                                    <p className="text-xs text-gray-400">
-                                      {follower.role === "Student" ? "Student" : "Recruiter"}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-8 text-gray-400">
-                              No followers yet
-                            </div>
-                          )}
-                        </ScrollArea>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      className="text-gray-400 hover:text-white flex items-center gap-2"
-                      onClick={toggleFollowing}
-                    >
-                      <Users className="h-4 w-4" />
-                      {following.length} Following
-                      <ChevronDown className={`h-4 w-4 transition-transform ${showFollowing ? 'rotate-180' : ''}`} />
-                    </Button>
-                    {showFollowing && (
-                      <div className="absolute top-full left-0 mt-2 w-64 bg-gray-950 rounded-lg shadow-lg border border-gray-800 z-10">
-                        <ScrollArea className="h-[300px]">
-                          {followingLoading ? (
-                            <div className="flex justify-center items-center h-40">
-                              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                            </div>
-                          ) : following.length > 0 ? (
-                            <div className="p-2">
-                              {following.map((followed) => (
-                                <div
-                                  key={followed._id}
-                                  className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
-                                  onClick={() => navigate(`/profile/${followed.role.toLowerCase()}/${followed._id}`)}
-                                >
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage src={followed.profile?.profilePhoto} />
-                                    <AvatarFallback className="bg-gray-700">
-                                      {followed.fullname?.charAt(0) || followed.companyname?.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <h3 className="text-sm font-medium">
-                                      {followed.fullname || followed.companyname}
-                                    </h3>
-                                    <p className="text-xs text-gray-400">
-                                      {followed.role === "student" ? "Student" : "Recruiter"}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-8 text-gray-400">
-                              Not following anyone yet
-                            </div>
-                          )}
-                        </ScrollArea>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Company Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-blue-400" />
-                      <span>Industry: {profileData?.industry || "Not specified"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-blue-400" />
-                      <span>Company Size: {profileData?.companysize || "Not specified"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-5 w-5 text-blue-400" />
-                      <span>Company Type: {profileData?.companytype || "Not specified"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-blue-400" />
-                      <span>CIN: {profileData?.cinnumber || "Not provided"}</span>
-                    </div>
-                  </div>
-
-                  {/* Contact Information */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-5 w-5 text-blue-400" />
-                      <span>{profileData?.email}</span>
-                    </div>
-                    {profileData?.profile?.phone && (
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5 text-blue-400" />
-                        <span>{profileData.profile.phone}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-blue-400" />
-                      <span>{profileData?.companyaddress || "Address not provided"}</span>
-                    </div>
-                    {profileData?.profile?.website && (
-                      <div className="flex items-center gap-2">
-                        <LinkIcon className="h-5 w-5 text-blue-400" />
-                        <a
-                          href={profileData.profile.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
-                        >
-                          {profileData.profile.website}
-                        </a>
-                      </div>
-                    )}
-                    {profileData?.createdAt && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-blue-400" />
-                        <span>Member since: {new Date(profileData.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Company Bio */}
-                {profileData?.profile?.bio && (
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-blue-400 mb-2">About Company</h3>
-                    <p className="text-gray-300">{profileData.profile.bio}</p>
+                    <FollowButton
+                      userId={profileData._id}
+                      userType="recruiter"
+                      size="sm"
+                      className="flex-1 bg-gray-800 hover:bg-gray-700 border-gray-700 cursor-pointer"
+                    />
                   </div>
                 )}
-
-                {/* Action Buttons */}
                 {isOwnProfile && (
-                  <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                  <>
                     <Button
                       onClick={() => setShowPostJob(true)}
                       className="bg-green-600 hover:bg-green-700"
@@ -816,101 +698,337 @@ const RecruiterProfile = () => {
                       <FileText className="w-4 h-4 mr-2" />
                       Post Internship
                     </Button>
-                  </div>
+                  </>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Jobs and Internships Tabs */}
-        <div className="flex flex-col items-center">
-          <Tabs defaultValue="jobs" className="w-full">
-            <div className="w-full max-w-4xl mb-6">
-              <TabsList className="bg-gray-900 border border-gray-800 grid grid-cols-2">
-                <TabsTrigger
-                  value="jobs"
-                  className="py-2 text-center data-[state=active]:bg-blue-600 data-[state=active]:text-white"
-                >
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  Posted Jobs ({postedJobs.length})
-                </TabsTrigger>
-                <TabsTrigger
-                  value="internships"
-                  className="py-2 text-center data-[state=active]:bg-blue-600 data-[state=active]:text-white"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Posted Internships ({internships.length})
-                </TabsTrigger>
-              </TabsList>
-            </div>
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Left side - Profile picture and company name */}
+                <div className="flex flex-col items-center md:w-1/4">
+                  <Avatar className="h-32 w-32 mb-4 border-2 border-blue-500">
+                    <AvatarImage src={profileData?.profile?.profilePhoto} />
+                    <AvatarFallback className="bg-gray-800 text-blue-400 text-3xl">
+                      {profileData?.companyname?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="text-xl font-semibold text-center text-blue-400">
+                    {profileData?.companyname}
+                  </h2>
 
-            <TabsContent value="jobs" className="w-full">
-              {postedJobs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
-                  {postedJobs.map(job => renderJobCard(job))}
+                  {/* Followers/Following */}
+                  <div className="flex items-center gap-4 mt-6">
+                    <div className="relative">
+                      <Button
+                        id="followers-button"
+                        variant="ghost"
+                        className="text-gray-300 hover:text-blue-400 hover:bg-blue-400/10"
+                        onClick={() => {
+                          setFollowersOpen(!followersOpen);
+                          setFollowingOpen(false);
+                        }}
+                      >
+                        <Users className="h-5 w-5 mr-2" />
+                        {followersLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <span>{followers?.length || 0} Followers</span>
+                        )}
+                      </Button>
+                      {followersOpen && (
+                        <div
+                          id="followers-popup"
+                          className="absolute top-full left-0 mt-2 w-72 bg-black border border-gray-700 rounded-lg shadow-xl z-50"
+                        >
+                          <div className="p-4">
+                            <h3 className="font-semibold text-blue-400 mb-3">
+                              Followers
+                            </h3>
+                            <ScrollArea className="h-64 pr-3">
+                              {followersLoading ? (
+                                <div className="flex justify-center items-center h-40">
+                                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                                </div>
+                              ) : followers?.length > 0 ? (
+                                <div className="space-y-3">
+                                  {followers.map((follower) => (
+                                    <div
+                                      key={follower._id}
+                                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/50 cursor-pointer transition-colors"
+                                      onClick={() => {
+                                        handleProfileClick(follower);
+                                        setFollowersOpen(false);
+                                      }}
+                                    >
+                                      <Avatar className="h-9 w-9">
+                                        <AvatarImage
+                                          src={follower.profile?.profilePhoto}
+                                        />
+                                        <AvatarFallback className="bg-gray-700 text-blue-400">
+                                          {(
+                                            follower.fullname || follower.companyname
+                                          )?.charAt(0)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-white truncate">
+                                          {follower.fullname || follower.companyname}
+                                        </p>
+                                        <p className="text-sm text-gray-400 truncate">
+                                          {follower.role}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-gray-400 text-center py-6">
+                                  No followers yet
+                                </p>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <Button
+                        id="following-button"
+                        variant="ghost"
+                        className="text-gray-300 hover:text-blue-400 hover:bg-blue-400/10"
+                        onClick={() => {
+                          setFollowingOpen(!followingOpen);
+                          setFollowersOpen(false);
+                        }}
+                      >
+                        <Users className="h-5 w-5 mr-2" />
+                        {followingLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <span>{following?.length || 0} Following</span>
+                        )}
+                      </Button>
+                      {followingOpen && (
+                        <div
+                          id="following-popup"
+                          className="absolute top-full left-0 mt-2 w-72 bg-black border border-gray-700 rounded-lg shadow-xl z-50"
+                        >
+                          <div className="p-4">
+                            <h3 className="font-semibold text-blue-400 mb-3">
+                              Following
+                            </h3>
+                            <ScrollArea className="h-64 pr-3">
+                              {followingLoading ? (
+                                <div className="flex justify-center items-center h-40">
+                                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                                </div>
+                              ) : following?.length > 0 ? (
+                                <div className="space-y-3">
+                                  {following.map((followed) => (
+                                    <div
+                                      key={followed._id}
+                                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/50 cursor-pointer transition-colors"
+                                      onClick={() => {
+                                        handleProfileClick(followed);
+                                        setFollowingOpen(false);
+                                      }}
+                                    >
+                                      <Avatar className="h-9 w-9">
+                                        <AvatarImage
+                                          src={followed.profile?.profilePhoto}
+                                        />
+                                        <AvatarFallback className="bg-gray-700 text-blue-400">
+                                          {(
+                                            followed.fullname || followed.companyname
+                                          )?.charAt(0)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-white truncate">
+                                          {followed.fullname || followed.companyname}
+                                        </p>
+                                        <p className="text-sm text-gray-400 truncate">
+                                          {followed.role}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-gray-400 text-center py-6">
+                                  Not following anyone yet
+                                </p>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - Recruiter information */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h1 className="text-2xl font-bold">
+                        {profileData?.companyname}
+                      </h1>
+                      <p className="text-gray-400">
+                        {profileData?.profile?.tagline || "Recruiter"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-blue-400" />
+                        <span>
+                          Industry: {profileData?.industry || "Technology"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-blue-400" />
+                        <span>
+                          Company Size:{" "}
+                          {profileData?.companysize || "50-200 employees"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-blue-400" />
+                        <span>
+                          Company Type:{" "}
+                          {profileData?.companytype || "Private Limited"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-blue-400" />
+                        <span>
+                          CIN: {profileData?.cinnumber || "U72900KA2023PTC123456"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-blue-400" />
+                        <span>{profileData?.email}</span>
+                      </div>
+                      {profileData?.profile?.phone && (
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-blue-400" />
+                          <span>{profileData.profile.phone}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-blue-400" />
+                        <span>
+                          {profileData?.companyaddress ||
+                            "123 Tech Park, Bangalore, Karnataka, India"}
+                        </span>
+                      </div>
+                      {profileData?.profile?.website && (
+                        <div className="flex items-center gap-2">
+                          <LinkIcon className="h-5 w-5 text-blue-400" />
+                          <a
+                            href={profileData.profile.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline flex items-center gap-1 text-sm mt-1"
+                          >
+                            <Globe className="h-4 w-4" /> {profileData.profile.website}
+                          </a>
+                        </div>
+                      )}
+                      {profileData?.createdAt && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-blue-400" />
+                          <span>
+                            Member since:{" "}
+                            {new Date(
+                              profileData.createdAt
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {profileData?.profile?.bio && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-semibold text-blue-400 mb-2">
+                        About Company
+                      </h3>
+                      <p className="text-gray-300">{profileData.profile.bio}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabs for Posted Jobs, Internships, Applicants */}
+          <Tabs defaultValue="jobs" className="w-full mt-8">
+            <TabsList className="bg-gray-900 border border-gray-800 grid w-full grid-cols-2">
+              <TabsTrigger 
+                value="jobs"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-colors duration-200"
+              >
+                <Briefcase className="w-4 h-4 mr-2" />
+                Posted Jobs
+              </TabsTrigger>
+              <TabsTrigger 
+                value="internships"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-colors duration-200"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Posted Internships
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="jobs" className="mt-6">
+              {postedJobs.length === 0 ? (
+                <div className="text-center py-10 text-gray-500">
+                  <Briefcase className="h-12 w-12 mx-auto mb-4" />
+                  <p>No jobs posted yet.</p>
                 </div>
               ) : (
-                <div className="flex justify-center">
-                  <div className="w-full max-w-4xl">
-                    <Card className="bg-gray-900 border-gray-800">
-                      <CardContent className="p-8 text-center">
-                        <Briefcase className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">No Jobs Posted Yet</h3>
-                        <p className="text-gray-400 mb-4">
-                          {isOwnProfile 
-                            ? "Start by posting your first job to find the right candidates."
-                            : "This company hasn't posted any jobs yet."}
-                        </p>
-                        {isOwnProfile && (
-                          <Button
-                            onClick={() => setShowPostJob(true)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Post a Job
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
+                  {postedJobs.map((job) => renderJobCard(job))}
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="internships" className="w-full">
-              {internships.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
-                  {internships.map(internship => renderInternshipCard(internship))}
+            <TabsContent value="internships" className="mt-6">
+              {internships.length === 0 ? (
+                <div className="text-center py-10 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-4" />
+                  <p>No internships posted yet.</p>
                 </div>
               ) : (
-                <div className="flex justify-center">
-                  <div className="w-full max-w-4xl">
-                    <Card className="bg-gray-900 border-gray-800">
-                      <CardContent className="p-8 text-center">
-                        <FileText className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">No Internships Posted Yet</h3>
-                        <p className="text-gray-400 mb-4">
-                          {isOwnProfile 
-                            ? "Share internship opportunities and connect with early talent."
-                            : "This company hasn't posted any internships yet."}
-                        </p>
-                        {isOwnProfile && (
-                          <Button
-                            onClick={() => setShowPostInternship(true)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Post Internship
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
+                  {internships.map((internship) => renderInternshipCard(internship))}
                 </div>
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Post Job Modal */}
+          {showPostJob && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <PostJob onClose={() => setShowPostJob(false)} onSuccess={handleJobPosted} />
+            </div>
+          )}
+
+          {/* Post Internship Modal */}
+          {showPostInternship && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <PostInternship onClose={() => setShowPostInternship(false)} onSuccess={handleInternshipPosted} />
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

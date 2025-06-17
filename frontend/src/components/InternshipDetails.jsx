@@ -141,16 +141,7 @@ const InternshipDetails = () => {
       <div className="bg-black text-white min-h-screen py-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
-          <div className="flex items-center text-sm text-gray-400 mb-6">
-            <span
-              className="hover:text-blue-400 cursor-pointer"
-              onClick={() => navigate("/internships")}
-            >
-              Internships
-            </span>
-            <ChevronRight className="h-4 w-4 mx-2" />
-            <span className="text-blue-400">{internship.title}</span>
-          </div>
+          
 
           {/* Internship Header */}
           <div className="bg-gray-900/50 rounded-xl p-6 mb-8 border border-gray-800">

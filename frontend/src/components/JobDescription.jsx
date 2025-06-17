@@ -16,6 +16,7 @@ const JobDescription = () => {
   const { user } = useSelector((store) => store.auth);
   const [isApplied, setIsApplied] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState(null);
 
   console.log("📌 Job ID from URL:", jobId);
   console.log("👤 Logged-in user:", user);
@@ -24,15 +25,16 @@ const JobDescription = () => {
   useEffect(() => {
     const fetchSingleJob = async () => {
       try {
+        console.log("Fetching single job...");
         const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
           withCredentials: true,
         });
-        console.log("📥 Job fetch response:", res.data);
         if (res.data.success) {
+          console.log("Job fetched successfully:", res.data.job);
           dispatch(setSingleJob(res.data.job));
         }
       } catch (error) {
-        console.error("❌ Error fetching job:", error);
+        console.error("Error fetching job:", error);
         toast.error("Failed to load job data.");
       }
     };
@@ -40,73 +42,71 @@ const JobDescription = () => {
     fetchSingleJob();
   }, [jobId, dispatch]);
 
-  // Set application status when singleJob changes
+  // Set application status when singleJob or user changes
   useEffect(() => {
-    console.log("🎯 Checking if user has applied...");
-    console.log("💼 Job applications:", singleJob?.applications);
+    console.log("Evaluating application status...");
+    console.log("Current singleJob in effect:", singleJob);
+    console.log("Current user in effect:", user);
+
     if (singleJob?.applications && user?._id) {
-      const applied = singleJob.applications.some(
-        (application) => application.applicant === user._id
+      console.log("Applications array:", singleJob.applications);
+      console.log("User ID:", user._id);
+      const userApplication = singleJob.applications.find(
+        (application) => application.applicant?._id === user._id
       );
-      console.log("✅ Has user applied?:", applied);
-      setIsApplied(applied);
+      console.log("Found user application:", userApplication);
+      setIsApplied(!!userApplication);
+      if (userApplication) {
+        setApplicationStatus(userApplication.status);
+      } else {
+        setApplicationStatus(null);
+      }
+      console.log("isApplied set to:", !!userApplication);
+    } else {
+      setIsApplied(false);
+      setApplicationStatus(null);
+      console.log("isApplied set to false (no job applications or user id).");
     }
   }, [singleJob, user]);
 
   // Handle Apply button click
   const applyJobHandler = async () => {
+    if (!user) {
+      toast.error("Please login to apply for jobs");
+      return;
+    }
+
     setIsApplying(true);
-    console.log("🚀 Applying for job:", jobId);
+    console.log("Attempting to apply for job...");
     try {
-
-
       const res = await axios.post(
-        `${APPLICATION_API_END_POINT}/apply/${jobId}`, {},
-        {
-          withCredentials: true,
-
-        }
+        `${APPLICATION_API_END_POINT}/apply/${jobId}`,
+        {},
+        { withCredentials: true }
       );
-
-      console.log("📝 Apply API response:", res.data);
 
       if (res.data.success) {
         toast.success(res.data.message);
-
-        // Immediately update local state
+        // Optimistically update UI state immediately
         setIsApplied(true);
+        setApplicationStatus('pending');
 
-        // Optimistically update Redux state
-        const updatedJob = {
-          ...singleJob,
-          applications: [
-            ...(singleJob.applications || []),
-            { applicant: user._id },
-          ],
-        };
-        dispatch(setSingleJob(updatedJob));
+        console.log("Application successful, refetching job for full consistency...");
+        // Refetch job for full consistency with backend (includes updated applications array)
+        const updatedJobRes = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
+          withCredentials: true,
+        });
+        if (updatedJobRes.data.success) {
+          console.log("Job refetched after apply:", updatedJobRes.data.job);
+          dispatch(setSingleJob(updatedJobRes.data.job));
+        }
       }
     } catch (error) {
-      console.error("❌ Error applying for job:", error);
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-        console.error("Response headers:", error.response.headers);
-        toast.error(
-          error.response.data.message || "Failed to apply for the job."
-        );
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error("No response received:", error.request);
-        toast.error("No response from server. Please check your connection.");
-      } else {
-        // Something happened in setting up the request
-        console.error("Request setup error:", error.message);
-        toast.error("Failed to setup request.");
-      }
+      console.error("Error applying for job:", error);
+      toast.error(error.response?.data?.message || "Failed to apply for the job.");
     } finally {
       setIsApplying(false);
+      console.log("Application process finished.");
     }
   };
 
@@ -138,16 +138,20 @@ const JobDescription = () => {
         {/* Job Title and Apply Button */}
         <div className="flex items-center justify-between mb-6 mr-7">
           <h1 className="text-2xl font-bold">{singleJob.title}</h1>
-          {user?.role !== "recruiter" && (
+          {user?.role === "student" && (
             <Button
               onClick={applyJobHandler}
               disabled={isApplied || isApplying}
-              className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${isApplied || isApplying ? 'bg-gray-500 text-white cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+              className={`px-4 py-2 rounded-md font-bold transition-colors duration-300 ${
+                isApplied || isApplying
+                  ? 'bg-gray-500 text-white cursor-not-allowed'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
             >
-              {isApplying
+              {isApplied
+                ? "Already Applied"
+                : isApplying
                 ? "Applying..."
-                : isApplied
-                  ? "Already Applied"
                   : "Apply Now"}
             </Button>
           )}
@@ -211,6 +215,23 @@ const JobDescription = () => {
               {new Date(singleJob.createdAt).toLocaleDateString()}
             </span>
           </h1>
+
+          {/* Skills Required Section */}
+          {singleJob.requirements && singleJob.requirements.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-white mb-3">Skills Required</h3>
+              <div className="flex flex-wrap gap-2">
+                {singleJob.requirements.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-gray-800 text-blue-400 text-sm rounded-md border border-gray-700"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

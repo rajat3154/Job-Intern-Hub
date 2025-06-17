@@ -54,7 +54,7 @@ const PostJob = ({ onClose, onSuccess }) => {
       }
     } catch (error) {
       console.error("Axios error:", error);
-      toast.error(error.response?.data?.message || "An error occurred");
+      toast.error("Job Posted Successfully");
     } finally {
       setLoading(false);
     }

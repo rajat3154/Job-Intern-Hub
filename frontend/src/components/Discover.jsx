@@ -72,7 +72,8 @@ const Discover = () => {
       user.userType?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleMessageClick = (user) => {
+  const handleMessageClick = (user, e) => {
+    e.stopPropagation();
     const selectedUser = {
       _id: user._id,
       fullName: user.displayName,
@@ -87,6 +88,14 @@ const Discover = () => {
     };
     localStorage.setItem("selectedUser", JSON.stringify(selectedUser));
     navigate("/messages");
+  };
+
+  const handleProfileClick = (user) => {
+    navigate(
+      user.userType === "recruiter"
+        ? `/recruiter/profile/${user._id}`
+        : `/profile/${user.userType}/${user._id}`
+    );
   };
 
   return (
@@ -154,24 +163,12 @@ const Discover = () => {
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ y: -5 }}
                   className="bg-gradient-to-b from-gray-900/80 to-gray-900/50 rounded-xl border border-gray-800/50 p-6 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all cursor-pointer"
-                  onClick={() =>
-                    navigate(
-                      user.userType === "recruiter"
-                        ? `/recruiter/profile/${user._id}`
-                        : `/profile/${user.userType}/${user._id}`
-                    )
-                  }
+                  onClick={() => handleProfileClick(user)}
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <Avatar
                       className="h-16 w-16 border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-colors"
-                      onClick={() =>
-                        navigate(
-                          user.userType === "recruiter"
-                            ? `/recruiter/profile/${user._id}`
-                            : `/profile/${user.userType}/${user._id}`
-                        )
-                      }
+                      onClick={() => handleProfileClick(user)}
                     >
                       <AvatarImage src={user.profile?.profilePhoto} />
                       <AvatarFallback className="bg-gray-800 text-blue-400 font-medium">
@@ -181,13 +178,7 @@ const Discover = () => {
                     <div>
                       <h3
                         className="font-semibold text-white truncate max-w-[150px] cursor-pointer hover:text-blue-400 transition-colors"
-                        onClick={() =>
-                          navigate(
-                            user.userType === "recruiter"
-                              ? `/recruiter/profile/${user._id}`
-                              : `/profile/${user.userType}/${user._id}`
-                          )
-                        }
+                        onClick={() => handleProfileClick(user)}
                       >
                         {user.displayName}
                       </h3>
@@ -218,7 +209,7 @@ const Discover = () => {
                       variant="outline"
                       size="sm"
                       className="flex-1 text-blue-400 border-blue-400/30 hover:bg-blue-400/10 hover:text-blue-300 cursor-pointer"
-                      onClick={() => handleMessageClick(user)}
+                      onClick={(e) => handleMessageClick(user, e)}
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Message
@@ -248,9 +239,7 @@ const Discover = () => {
                   No users found
                 </h3>
                 <p className="text-gray-500">
-                  {searchTerm
-                    ? "Try adjusting your search query"
-                    : "There are no users to display at this time"}
+                  Adjust your search or check back later for more users to discover.
                 </p>
               </div>
             </motion.div>

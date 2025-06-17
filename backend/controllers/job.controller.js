@@ -173,6 +173,7 @@ export const getRecruiterJobs = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in getRecruiterJobs:", error);
+        console.error("Error stack:", error.stack);
         return res.status(500).json({
             success: false,
             message: "Error fetching recruiter jobs"

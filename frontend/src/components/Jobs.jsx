@@ -7,6 +7,7 @@ import { setAllJobs } from "@/redux/jobSlice";
 import PostJob from "./recruiter/PostJob";
 import { Bookmark, BookmarkCheck, Search } from "lucide-react";
 import { toast } from "sonner";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 
 const Jobs = () => {
   const navigate = useNavigate();
@@ -239,89 +240,120 @@ const Jobs = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs.map((job) => (
               <div
                 key={job._id}
                 onClick={(e) => handleJobClick(job._id, e)}
-                className="relative p-6 rounded-lg shadow-lg bg-black text-white border border-blue-500 hover:bg-gray-800 cursor-pointer transition duration-300"
+                className="w-full p-5 rounded-xl shadow-md bg-black text-white border border-blue-500 hover:bg-gray-900 transition duration-300 flex flex-col h-full relative group cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && handleJobClick(job._id, e)}
               >
-                <div className="absolute top-3 right-4 flex gap-2">
+                {/* Action Buttons */}
+                <div className="absolute top-3 right-3 flex gap-2 z-10">
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleJobClick(job._id, e);
                     }}
-                    variant="outline"
-                    className="px-3 py-1 bg-purple-500 border-purple-500 text-white text-sm font-bold rounded-md hover:bg-purple-600 cursor-pointer"
+                    className="px-3 py-1 bg-purple-800 border-purple-500 text-white text-sm font-bold rounded-md hover:bg-purple-600 cursor-pointer"
                   >
                     View Details
                   </Button>
-                  <Button
-                    onClick={(e) => handleSaveJob(e, job._id)}
-                    variant="outline"
-                    className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 cursor-pointer ${
-                      isSaved && currentJobId === job._id
-                        ? "bg-blue-500 hover:bg-blue-600"
-                        : "bg-gray-600 hover:bg-gray-700"
-                    }`}
-                  >
-                    {isSaved && currentJobId === job._id ? (
-                      <BookmarkCheck size={16} />
-                    ) : (
-                      <Bookmark size={16} />
-                    )}
-                    {isSaved && currentJobId === job._id ? "Saved" : "Save Job"}
-                  </Button>
+                  {user?.role === "student" && (
+                    <Button
+                      onClick={(e) => handleSaveJob(e, job._id)}
+                      variant="outline"
+                      className={`px-3 py-1 text-sm font-bold rounded-md flex items-center gap-2 cursor-pointer ${
+                        isSaved && currentJobId === job._id
+                          ? "bg-blue-500 hover:bg-blue-600 text-black"
+                          : "bg-black hover:bg-gray-700"
+                      }`}
+                    >
+                      {isSaved && currentJobId === job._id ? (
+                        <BookmarkCheck size={16} />
+                      ) : (
+                        <Bookmark size={16} />
+                      )}
+                      {isSaved && currentJobId === job._id ? "Saved" : "Save Job"}
+                    </Button>
+                  )}
                 </div>
 
-                <div className="mt-12">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-gray-400">
-                      {new Date(job.createdAt).toDateString()}
-                    </p>
-                    {user?.role === "recruiter" && (
-                      <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
-                        {job.applicants?.length || 0} applicants
-                      </span>
-                    )}
-                  </div>
+                {/* Card Content */}
+                <div className="mt-10 flex flex-col h-full">
+                  {/* Date - Left aligned */}
+                  <p className="text-xs text-gray-400 mb-3 text-left">
+                    {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "N/A"}
+                  </p>
 
-                  <div className="flex items-center gap-3 mb-6">
-                    <img
-                      src={
-                        job.created_by?.profile?.profilePhoto ||
-                        "https://via.placeholder.com/50"
-                      }
-                      alt="Company Logo"
-                      className="w-12 h-12 rounded-full"
-                    />
-                    <div>
-                      <h1 className="font-semibold text-lg">
-                        {job.company || "Your Company"}
-                      </h1>
-                      <p className="text-sm text-gray-400">{job.location}</p>
+                  {/* Company Info */}
+                  <div className="flex gap-3 mb-4">
+                    <Avatar className="w-10 h-10 rounded-full object-cover border border-gray-600">
+                      <AvatarImage src={job?.created_by?.profile?.profilePhoto} />
+                      <AvatarFallback className="bg-gray-800 text-blue-400">
+                        {(job?.created_by?.companyname || "C").charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-left">
+                      <h2 className="text-base font-semibold line-clamp-1">
+                        {job?.created_by?.companyname || "Company Name"}
+                      </h2>
+                      <p className="text-xs text-gray-400">
+                        {job.location || "Location not specified"}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="mb-4">
-                    <h1 className="font-bold text-xl mb-3">{job.title}</h1>
-                    <p className="text-sm text-gray-300 line-clamp-3">
-                      {job.description}
-                    </p>
+                  {/* Job Title & Description */}
+                  <div className="mb-4 text-left">
+                    <h1 className="text-lg font-bold line-clamp-1 mb-2">
+                      {job.title || "Job Title"}
+                    </h1>
+                    {job.description && (
+                      <p className="text-sm text-gray-300 line-clamp-2">
+                        {job.description}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="px-2 py-1 bg-blue-400 text-black text-sm font-bold rounded-md">
-                      {job.position} Positions
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span className="px-2.5 py-1 bg-blue-400 text-black text-xs font-medium rounded-md">
+                      {job.position || 1} Position{job.position > 1 ? "s" : ""}
                     </span>
-                    <span className="px-2 py-1 bg-red-600 text-white text-sm font-bold rounded-md">
-                      {job.jobType}
+                    <span className="px-2.5 py-1 bg-yellow-400 text-black text-xs font-medium rounded-md">
+                      {job.salary ? `${job.salary} LPA` : "Salary N/A"}
                     </span>
-                    <span className="px-2 py-1 bg-yellow-400 text-black text-sm font-bold rounded-md">
-                      {job.salary}
+                    <span className="px-2.5 py-1 bg-red-600 text-white text-xs font-medium rounded-md">
+                      {job.jobType || "Type N/A"}
                     </span>
                   </div>
+
+                  {/* Skills - Left aligned */}
+                  {job.requirements?.length > 0 && (
+                    <div className="mt-auto text-left">
+                      <p className="text-xs font-medium text-gray-400 mb-2">
+                        Required Skills:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {job.requirements.slice(0, 4).map((skill, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-gray-700 text-white text-xs rounded-md"
+                          >
+                            {skill.length > 12 ? `${skill.substring(0, 10)}...` : skill}
+                          </span>
+                        ))}
+                        {job.requirements.length > 4 && (
+                          <span className="px-2 py-1 bg-gray-800 text-gray-400 text-xs rounded-md">
+                            +{job.requirements.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
