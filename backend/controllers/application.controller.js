@@ -288,10 +288,23 @@ export const getAppliedInternships = async (req, res, next) => {
 export const getApplicants = async (req, res) => {
       const job = await Job.findById(req.params.id)
             .populate({
+                  path: "created_by",
+                  select: "companyname email companyaddress companystatus profile",
+                  populate: {
+                        path: "profile",
+                        select: "profilePhoto bio"
+                  }
+            })
+            .populate({
                   path: "applications",
                   populate: {
                         path: "applicant",
                         model: "Student",
+                        select: "fullname email profile",
+                        populate: {
+                              path: "profile",
+                              select: "profilePhoto resume"
+                        }
                   },
             });
 

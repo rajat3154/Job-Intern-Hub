@@ -118,7 +118,7 @@ const Discover = () => {
         </motion.div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ">
             {[...Array(8)].map((_, i) => (
               <motion.div
                 key={i}
@@ -153,7 +153,14 @@ const Discover = () => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ y: -5 }}
-                  className="bg-gradient-to-b from-gray-900/80 to-gray-900/50 rounded-xl border border-gray-800/50 p-6 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all"
+                  className="bg-gradient-to-b from-gray-900/80 to-gray-900/50 rounded-xl border border-gray-800/50 p-6 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all cursor-pointer"
+                  onClick={() =>
+                    navigate(
+                      user.userType === "recruiter"
+                        ? `/recruiter/profile/${user._id}`
+                        : `/profile/${user.userType}/${user._id}`
+                    )
+                  }
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <Avatar

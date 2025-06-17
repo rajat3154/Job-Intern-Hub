@@ -95,14 +95,22 @@ export const getJobById = async (req, res) => {
             const jobId = req.params.id;
             const job = await Job.findById(jobId)
             .populate({
-                  path: "applications"
+                  path: "applications",
+                  populate: {
+                    path: 'applicant',
+                    select: 'fullname email profile',
+                    populate: {
+                      path: 'profile',
+                      select: 'profilePhoto resume'
+                    }
+                  }
             })
             .populate({
               path: 'created_by',
-              select: 'companyname profile',
+              select: 'companyname email companyaddress companystatus profile',
               populate: {
                 path: 'profile',
-                select: 'profilePhoto'
+                select: 'profilePhoto bio'
               }
             });
             if (!job) {
@@ -117,6 +125,10 @@ export const getJobById = async (req, res) => {
             })
       } catch (error) {
             console.log(error);
+            return res.status(500).json({
+                  message: "Server error",
+                  success: false
+            });
       }
 }
 

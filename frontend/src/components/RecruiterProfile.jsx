@@ -102,7 +102,7 @@ const RecruiterProfile = () => {
             }
           ),
         ]);
-
+        console.log(followersRes)
         setFollowers(followersRes.data.data);
         setFollowing(followingRes.data.data);
       } catch (error) {
@@ -563,7 +563,7 @@ const RecruiterProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-black text-white">
       <Navbar />
 
       {/* Modals */}
@@ -663,7 +663,7 @@ const RecruiterProfile = () => {
                                       {follower.fullname || follower.companyname}
                                     </h3>
                                     <p className="text-xs text-gray-400">
-                                      {follower.role === "student" ? "Student" : "Recruiter"}
+                                      {follower.role === "Student" ? "Student" : "Recruiter"}
                                     </p>
                                   </div>
                                 </div>
