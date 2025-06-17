@@ -94,7 +94,7 @@ router.get("/student/:id", isAuthenticated, async (req, res) => {
 });
 
 // Recruiter routes
-router.route("/recruiter/signup").post(upload.single('profilePhoto'), recregister);
+router.route("/recruiter/signup").post(upload.fields([{ name: 'file', maxCount: 1 }]), recregister);
 router.route("/recruiter/recruiters").get(isAuthenticated, getAllRecruiters);
 router.delete("/recruiter/:id", isAuthenticated, isaAdmin, deleteRecruiter);
 
