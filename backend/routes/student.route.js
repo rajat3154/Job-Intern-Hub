@@ -70,7 +70,7 @@ router.route("/check-auth").get(isAuthenticated, async (req, res) => {
   
 
 // Student specific routes
-router.route("/student/signup").post(upload.single('profilePhoto'), sregister);
+router.route("/student/signup").post(upload.fields([{ name: 'profilePhoto', maxCount: 1 }]), sregister);
 router.route("/student/profile/update").post(isAuthenticated, upload.fields([
       { name: 'profilePhoto', maxCount: 1 },
       { name: 'file', maxCount: 1 }
