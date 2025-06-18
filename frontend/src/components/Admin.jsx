@@ -9,6 +9,7 @@ import Navbar from "./shared/Navbar";
 import {
   ADMIN_API_END_POINT,
   RECRUITER_API_END_POINT,
+  USER_API_END_POINT,
   STUDENT_API_END_POINT,
 } from "@/utils/constant";
 
@@ -241,7 +242,7 @@ const Admin = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v1/students/${id}`,
+        `${STUDENT_API_END_POINT}/${id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -268,7 +269,7 @@ const Admin = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v1/recruiter/${id}`,
+        `${RECRUITER_API_END_POINT}/${id}`,
         {
           method: "DELETE",
           credentials: "include",

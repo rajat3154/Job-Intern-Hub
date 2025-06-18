@@ -3,7 +3,6 @@ import { deleteStudent, getAllStudents, isAdmin, login, logout, sregister, updat
 import express, { Router } from "express";
 import {  upload } from "../middlewares/multer.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
-import isaAdmin from "../middlewares/isAuthenticated.js";
 import { Student } from "../models/student.model.js";
 import { Recruiter } from "../models/recruiter.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -76,7 +75,7 @@ router.route("/student/profile/update").post(isAuthenticated, upload.fields([
       { name: 'file', maxCount: 1 }
 ]), updateProfile);
 router.route('/student/students').get(isAuthenticated, getAllStudents);
-router.delete("/student/:id", isAuthenticated, isaAdmin, deleteStudent);
+router.delete("/student/:id", isAuthenticated, isAdmin, deleteStudent);
 
 // Get single student profile - moved after specific routes
 router.get("/student/:id", isAuthenticated, async (req, res) => {
@@ -96,7 +95,7 @@ router.get("/student/:id", isAuthenticated, async (req, res) => {
 // Recruiter routes
 router.route("/recruiter/signup").post(upload.fields([{ name: 'file', maxCount: 1 }]), recregister);
 router.route("/recruiter/recruiters").get(isAuthenticated, getAllRecruiters);
-router.delete("/recruiter/:id", isAuthenticated, isaAdmin, deleteRecruiter);
+router.delete("/recruiter/:id", isAuthenticated, isAdmin, deleteRecruiter);
 
 // Get all students - moved to the end
 router.get("/students", isAuthenticated, async (req, res) => {
