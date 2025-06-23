@@ -93,11 +93,20 @@ const JobDetails = () => {
   }
 
   const handleViewPdf = (url) => {
-    const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(
-      url
-    )}&embedded=true`;
+    if (!url) {
+      setPdfError("No resume available");
+      setShowPdf(true);
+      return;
+    }
+    const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
     setPdfUrl(googleDocsUrl);
     setShowPdf(true);
+  };
+
+  const handleClosePdf = () => {
+    setShowPdf(false);
+    setPdfUrl("");
+    setPdfError(null);
   };
 
   const handleMessageClick = (recruiter) => {
@@ -419,9 +428,10 @@ const JobDetails = () => {
                         <td>
                           {app.applicant?.profile?.resume ? (
                             <button
-                              onClick={() =>
-                                handleViewPdf(app.applicant.profile.resume)
-                              }
+                              onClick={() => {
+                                console.log("Resume button clicked for:", app.applicant?.fullname, app.applicant?.profile?.resume);
+                                handleViewPdf(app.applicant.profile.resume);
+                              }}
                               className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
                             >
                               <FileText className="h-4 w-4" />
@@ -486,20 +496,17 @@ const JobDetails = () => {
 
         {/* PDF Viewer Modal */}
         {showPdf && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900 rounded-lg p-4 w-full max-w-5xl h-[90vh] flex flex-col border border-gray-800 shadow-2xl">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-white">
-                  Resume Preview
-                </h3>
-                <button
-                  onClick={() => setShowPdf(false)}
-                  className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800"
-                >
-                  <X className="w-6 h-6" />
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="relative bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center p-4 border-b border-gray-700">
+                <h3 className="text-xl font-semibold text-white">Resume Preview</h3>
+                <button onClick={handleClosePdf} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-              <div className="flex-1 relative">
+              <div className="flex-1 overflow-hidden">
                 {pdfError ? (
                   <div className="flex items-center justify-center h-full text-red-400">
                     {pdfError}
@@ -507,9 +514,8 @@ const JobDetails = () => {
                 ) : (
                   <iframe
                     src={pdfUrl}
-                    className="w-full h-full border-0 rounded-lg"
+                    className="w-full h-full"
                     title="PDF Viewer"
-                    allowFullScreen
                   />
                 )}
               </div>
