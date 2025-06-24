@@ -141,7 +141,16 @@ const InternshipDetails = () => {
       <div className="bg-black text-white min-h-screen py-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
-          
+          <div className="flex items-center text-sm text-gray-400 mb-6">
+            <span
+              className="hover:text-blue-400 cursor-pointer"
+              onClick={() => navigate("/internships")}
+            >
+              Internships
+            </span>
+            <ChevronRight className="h-4 w-4 mx-2" />
+            <span className="text-blue-400">{internship.title}</span>
+          </div>
 
           {/* Internship Header */}
           <div className="bg-gray-900/50 rounded-xl p-6 mb-8 border border-gray-800">
@@ -195,11 +204,11 @@ const InternshipDetails = () => {
                       <h3 className="font-semibold text-white mb-2">
                         Required Skills:
                       </h3>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
                         {internship.skills.map((skill, idx) => (
                           <span
                             key={idx}
-                            className="px-3 py-1 bg-gray-800 text-white text-sm rounded-md w-fit"
+                            className="px-3 py-1 bg-gray-800 text-white text-sm rounded-md"
                           >
                             {skill}
                           </span>

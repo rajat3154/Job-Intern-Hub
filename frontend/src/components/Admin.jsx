@@ -637,7 +637,7 @@ const Admin = () => {
             recruiterRequests.map((req) => (
               <div
                 key={req._id}
-                className="bg-gray-800 p-4 rounded-lg mb-4 text-white flex items-start gap-4"
+                className="bg-gray-950 p-4 rounded-lg mb-4 text-white flex items-start gap-4"
               >
                 <Avatar className="w-16 h-16 border border-gray-600">
                   <AvatarImage src={req.profile?.profilePhoto} />
